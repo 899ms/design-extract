@@ -224,6 +224,9 @@ export async function crawlPage(url, options = {}) {
         Object.assign(lightData.cssVariables, ap.data.cssVariables);
         lightData.mediaQueries.push(...ap.data.mediaQueries);
         lightData.keyframes.push(...ap.data.keyframes);
+        if (ap.data.fluidValues) {
+          lightData.fluidValues = [...(lightData.fluidValues || []), ...ap.data.fluidValues];
+        }
       }
       // Deduplicate media queries and keyframes
       lightData.mediaQueries = [...new Set(lightData.mediaQueries)];
@@ -581,6 +584,7 @@ async function extractPageData(page, ignoreSelectors, scopeSelector) {
     }
 
     const results = {
+      viewport: { width: window.innerWidth, height: window.innerHeight },
       computedStyles: [],
       cssVariables: {},
       mediaQueries: [],
@@ -678,6 +682,10 @@ async function extractPageData(page, ignoreSelectors, scopeSelector) {
     }
 
     let sourceAttrBudget = 500;
+    // Range measurement is the expensive part of this loop — cap it.
+    let lineWidthBudget = 120;
+    const PROSE_TAGS = new Set(['p', 'li', 'blockquote', 'dd']);
+
     for (const el of elements) {
       const cs = getComputedStyle(el);
       const tag = el.tagName.toLowerCase();
@@ -697,6 +705,25 @@ async function extractPageData(page, ignoreSelectors, scopeSelector) {
         sourceAttrBudget--;
       }
 
+      // Rendered line width for prose. A paragraph's box is as wide as its
+      // container; the text inside it usually is not, so measuring the box
+      // reports a line length nobody is actually reading. A Range over the
+      // element's own text gives the real line boxes.
+      let lineWidth = null;
+      if (lineWidthBudget > 0 && PROSE_TAGS.has(tag)) {
+        try {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const rects = range.getClientRects();
+          let widest = 0;
+          for (const r of rects) {
+            if (r.height > 0 && r.width > widest) widest = r.width;
+          }
+          if (widest > 0) lineWidth = Math.round(widest);
+          lineWidthBudget--;
+        } catch { /* detached or unmeasurable */ }
+      }
+
       // hasText: at least one direct text-node child with visible characters —
       // lets downstream extractors filter decorative spans/divs out of WCAG
       // contrast accounting.
@@ -706,7 +733,12 @@ async function extractPageData(page, ignoreSelectors, scopeSelector) {
       }
 
       results.computedStyles.push({
-        tag, classList, role, area, hasText,
+        tag, classList, role, area, hasText, lineWidth,
+        // Box geometry — measure (chars per line), container ladders and
+        // section rhythm all need the rendered width, not just the area.
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        top: Math.round(rect.top + window.scrollY),
         color: cs.color,
         backgroundColor: cs.backgroundColor,
         backgroundImage: cs.backgroundImage,
@@ -818,6 +850,12 @@ async function extractPageData(page, ignoreSelectors, scopeSelector) {
     results.containerQueries = [];
     results.envUsage = [];
     results.modernColors = [];
+    // Fluid/responsive declarations. Computed styles resolve clamp() and vw
+    // units down to a single px value at the capture viewport, so the only
+    // place a site's *fluid* intent survives is the authored declaration.
+    results.fluidValues = [];
+    const FLUID_PROPS = ['font-size', 'line-height', 'letter-spacing', 'padding', 'padding-top', 'padding-bottom', 'padding-inline', 'padding-block', 'gap', 'row-gap', 'column-gap', 'width', 'max-width', 'margin-block', 'border-radius'];
+    const FLUID_VALUE_RE = /clamp\(|min\(|max\(|calc\(|[\d.]+\s*v(?:w|h|min|max|i|b)\b/i;
     const MODERN_COLOR_RE = /(oklch\([^)]+\)|oklab\([^)]+\)|color-mix\([^)]+\)|light-dark\([^)]+\)|color\(\s*display-p3[^)]+\)|color\(\s*rec2020[^)]+\))/gi;
     function walkRulesForContainersAndEnv(rules) {
       for (const rule of rules) {
@@ -862,6 +900,16 @@ async function extractPageData(page, ignoreSelectors, scopeSelector) {
               selectorText: '',
               declarationCount: 0,
             });
+          }
+          // Fluid declarations (clamp/vw/min/max) — capped so a huge
+          // stylesheet can't blow up the payload.
+          if (rule.style && results.fluidValues.length < 400) {
+            for (const prop of FLUID_PROPS) {
+              const v = rule.style.getPropertyValue(prop);
+              if (v && FLUID_VALUE_RE.test(v)) {
+                results.fluidValues.push({ property: prop, value: v.trim(), selector: (rule.selectorText || '').slice(0, 120) });
+              }
+            }
           }
           // env() scan on declaration text
           if (rule.style) {
@@ -1105,6 +1153,13 @@ function parseCrossOriginCSS(cssText, data) {
   if (!data.containerQueries) data.containerQueries = [];
   for (const m of cssText.matchAll(/@container\s*([^{]*)\{/g)) {
     data.containerQueries.push({ condition: m[1].trim(), selectorText: '', declarationCount: 0 });
+  }
+  // Fluid declarations from cross-origin sheets fetched as text.
+  if (!data.fluidValues) data.fluidValues = [];
+  const FLUID_TEXT_RE = /(font-size|line-height|letter-spacing|gap|padding|padding-block|padding-inline|max-width|width|border-radius)\s*:\s*([^;}]*(?:clamp\(|[\d.]+v(?:w|h|min|max)\b)[^;}]*)/gi;
+  for (const m of cssText.matchAll(FLUID_TEXT_RE)) {
+    if (data.fluidValues.length >= 400) break;
+    data.fluidValues.push({ property: m[1].toLowerCase(), value: m[2].trim(), selector: '' });
   }
   // env() usage
   if (!data.envUsage) data.envUsage = [];

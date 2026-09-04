@@ -27,6 +27,52 @@ export function formatMarkdown(design) {
     lines.push('');
   }
 
+  if (colors.ramps && Object.keys(colors.ramps).length > 0) {
+    lines.push('### Tonal Ramps');
+    lines.push('');
+    lines.push('Generated in OKLCH from each role colour, so the steps are perceptually even. The site\'s own colour keeps its position in the ladder.');
+    lines.push('');
+    const stepNames = Object.keys(Object.values(colors.ramps)[0].steps);
+    lines.push(`| Role | ${stepNames.join(' | ')} |`);
+    lines.push(`|------|${stepNames.map(() => '-----').join('|')}|`);
+    for (const [role, ramp] of Object.entries(colors.ramps)) {
+      const cells = stepNames.map(n => (n === ramp.anchor ? `**\`${ramp.steps[n]}\`**` : `\`${ramp.steps[n]}\``));
+      lines.push(`| ${role} | ${cells.join(' | ')} |`);
+    }
+    lines.push('');
+  }
+
+  if (colors.pairs?.length > 0) {
+    lines.push('### Semantic Pairs');
+    lines.push('');
+    lines.push('| Role | Background | Foreground | Contrast | Level |');
+    lines.push('|------|------------|------------|----------|-------|');
+    for (const p of colors.pairs) {
+      const flag = p.unresolvable ? ' ⚠' : (p.fromPalette ? '' : ' *');
+      lines.push(`| \`${p.role}\` | \`${p.background}\` | \`${p.foreground || '—'}\` | ${p.ratio ?? '—'}:1 | ${p.level}${flag} |`);
+    }
+    lines.push('');
+    if (colors.pairs.some(p => !p.fromPalette)) {
+      lines.push('\\* No colour the site already uses for text reaches 4.5:1 on that surface — the foreground shown is black or white, substituted in.');
+      lines.push('');
+    }
+    if (colors.pairs.some(p => p.unresolvable)) {
+      lines.push('⚠ marks a surface where nothing, not even black or white, reaches 4.5:1.');
+      lines.push('');
+    }
+  }
+
+  if (colors.dominance?.length > 0) {
+    lines.push('### Dominance');
+    lines.push('');
+    lines.push('Share of painted background area — what the page looks like, as opposed to what it declares most often.');
+    lines.push('');
+    for (const d of colors.dominance.slice(0, 6)) {
+      lines.push(`- \`${d.hex}\` — ${Math.round(d.areaShare * 100)}%`);
+    }
+    lines.push('');
+  }
+
   if (colors.neutrals.length > 0) {
     lines.push('### Neutral Colors');
     lines.push('');
@@ -84,6 +130,52 @@ export function formatMarkdown(design) {
     for (const f of typography.families) {
       lines.push(`- **${f.name}** — used for ${f.usage} (${f.count} elements)`);
     }
+    lines.push('');
+  }
+
+  const sys = typography.system;
+  if (sys) {
+    lines.push('### Type System');
+    lines.push('');
+    if (sys.ratio?.value) {
+      lines.push(`- **Scale ratio** — ${sys.ratio.value} (${sys.ratio.name}), anchored at ${sys.ratio.anchor}px · ${Math.round(sys.ratio.coverage * 100)}% of sizes sit on the ladder`);
+    } else if (sys.ratio) {
+      lines.push(`- **Scale ratio** — irregular (${sys.ratio.steps} distinct sizes, no modular ratio fits)`);
+    }
+    if (sys.measure) {
+      lines.push(`- **Measure** — ~${sys.measure.charsPerLine} characters per line (${sys.measure.verdict}${sys.measure.confidence === 'high' ? '' : `, ${sys.measure.confidence} confidence from ${sys.measure.samples} ${sys.measure.samples === 1 ? 'sample' : 'samples'}`})`);
+    }
+    if (sys.fluid?.isFluid) {
+      const r = sys.fluid.range;
+      lines.push(`- **Fluid type** — ${sys.fluid.count} clamp/viewport font sizes${r ? `, ${Math.round(r.minPx)}px → ${Math.round(r.maxPx)}px` : ''}`);
+      if (sys.fluid.inertCount > 0) {
+        lines.push(`  - ⚠ ${sys.fluid.inertCount} clamp() ${sys.fluid.inertCount === 1 ? 'value has' : 'values have'} no viewport unit in the preferred term — they never scale.`);
+      }
+    } else {
+      lines.push('- **Fluid type** — none; sizes are fixed per breakpoint');
+    }
+    lines.push('');
+  }
+
+  if (typography.roleScale?.length > 0) {
+    lines.push('### Named Scale');
+    lines.push('');
+    lines.push('| Role | Size | Weight | Line Height | Tracking |');
+    lines.push('|------|------|--------|-------------|----------|');
+    for (const r of typography.roleScale.slice(0, 15)) {
+      lines.push(`| \`${r.role}\` | ${r.size}px / ${pxToRem(r.size)}rem | ${r.weight} | ${r.lineHeight} | ${r.letterSpacing} |`);
+    }
+    lines.push('');
+  }
+
+  if (typography.fluid?.length > 0) {
+    lines.push('### Fluid Declarations');
+    lines.push('');
+    lines.push('```css');
+    for (const f of typography.fluid.slice(0, 10)) {
+      lines.push(`${f.selector || '/* … */'} { ${f.property}: ${f.raw}; }`);
+    }
+    lines.push('```');
     lines.push('');
   }
 
@@ -155,11 +247,26 @@ export function formatMarkdown(design) {
   }
 
   // ── Shadows ──
-  if (shadows.values.length > 0) {
-    lines.push('## Box Shadows');
+  if (shadows.elevation?.length > 0) {
+    lines.push('## Elevation');
     lines.push('');
-    for (const s of shadows.values) {
-      lines.push(`**${s.label}${s.inset ? ' (inset)' : ''}** — blur: ${s.blur}px`);
+    lines.push(`${shadows.system.levels} levels from ${shadows.system.rawCount} raw shadows · ${shadows.system.tint} tint`);
+    lines.push('');
+    for (const e of shadows.elevation) {
+      const tint = e.tint.kind === 'colored' ? ` · tinted (hue ${e.tint.hue}°)` : '';
+      const layered = e.layerCount > 1 ? ` · ${e.layerCount} layers` : '';
+      lines.push(`**${e.name}** — blur ${e.blur}px, y ${e.offsetY}px, used ${e.usage}×${layered}${tint}`);
+      lines.push('```css');
+      lines.push(`box-shadow: ${e.raw};`);
+      lines.push('```');
+      lines.push('');
+    }
+  }
+  const insets = shadows.values.filter(s => s.inset);
+  if (insets.length > 0) {
+    lines.push('## Inset Shadows');
+    lines.push('');
+    for (const s of insets) {
       lines.push('```css');
       lines.push(`box-shadow: ${s.raw};`);
       lines.push('```');
@@ -308,6 +415,40 @@ export function formatMarkdown(design) {
     lines.push('');
     lines.push(`**${l.gridCount} grid containers** and **${l.flexCount} flex containers** detected.`);
     lines.push('');
+
+    if (l.system) {
+      const sy = l.system;
+      lines.push('### The System');
+      lines.push('');
+      if (sy.container) {
+        lines.push(`- **Content column** — ${sy.container.contentWidth}px wide${sy.container.fullBleed ? ' (full-bleed — no constrained container found)' : ''}${sy.container.gutter != null ? `, ${sy.container.gutter}px gutters` : ''}${sy.density != null ? ` (${Math.round(sy.density * 100)}% edge density)` : ''}`);
+        if (sy.container.fullBleed && sy.container.innerWidth) {
+          lines.push(`  - Widest constrained block inside it: ${sy.container.innerWidth}px`);
+        }
+        if (sy.container.ladder.length > 1) {
+          lines.push(`  - Width ladder: ${sy.container.ladder.map(w => `${w}px`).join(' · ')}`);
+        }
+      }
+      if (sy.columns) {
+        lines.push(`- **Column system** — ${sy.columns.dominant} columns${sy.columns.canonical ? ' (canonical page grid)' : ''}`);
+      }
+      if (sy.rhythm) {
+        lines.push(`- **Section rhythm** — ${sy.rhythm.section}px vertical padding (ladder: ${sy.rhythm.ladder.map(r => `${r}px`).join(' · ')})`);
+      }
+      if (sy.gapScale?.length > 0) {
+        lines.push(`- **Gap scale** — ${sy.gapScale.map(g => `${g}px`).join(' · ')}`);
+      }
+      if (sy.fluid?.count > 0) {
+        lines.push(`- **Fluid layout** — ${sy.fluid.count} clamp/viewport declarations`);
+        lines.push('');
+        lines.push('```css');
+        for (const f of sy.fluid.declarations.slice(0, 6)) {
+          lines.push(`${f.selector || '/* … */'} { ${f.property}: ${f.value}; }`);
+        }
+        lines.push('```');
+      }
+      lines.push('');
+    }
 
     if (l.containerWidths.length > 0) {
       lines.push('### Container Widths');

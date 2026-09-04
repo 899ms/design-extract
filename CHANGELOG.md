@@ -1,5 +1,69 @@
 # Changelog
 
+## [13.2.0] — 2026-08-31
+
+**Depth pass on extraction: the inventories become systems.**
+
+Four groups of tokens were being reported as flat lists — every font size, every
+shadow string, every max-width — leaving the reader to infer the system. Now the
+system itself is extracted, and four real bugs fell out along the way.
+
+**Typography**
+
+- **Modular ratio inference** — fits the scale against the eight standard ratios
+  with a power penalty (without one, a minor second explains any scale by raising
+  itself to the 4th) and reports fit, ladder coverage and anchor, or refuses to
+  name a ratio at all.
+- **Named scale** — every step gets a usable role. Heading tags claim their own;
+  `display` is reserved for the largest step on the page.
+- **Fluid type** — computed styles resolve `clamp()` to a single px value at the
+  capture viewport, so a site's responsive ramp was invisible. Authored fluid
+  declarations are now harvested off the stylesheets (cross-origin sheets
+  included) and parsed into min/max px — flagging clamps whose preferred term
+  carries no viewport unit and therefore never scale.
+- **Measure** — characters per line for body copy, measured from real line boxes
+  via a Range over each prose element rather than from the paragraph's container
+  width, with a narrow/comfortable/wide verdict and a confidence level.
+
+**Elevation**
+
+- **Multi-layer shadows parse correctly.** `0 1px 2px …, 0 10px 15px -3px …` —
+  what Tailwind and most design systems emit — was parsed as one shadow, sweeping
+  offsets across every layer, so blur, offset and spread were wrong for most real
+  sites.
+- **An elevation ladder**, deduped from the raw set, with per-shadow tint
+  (neutral vs brand-coloured, hue and alpha) and a redundancy figure.
+
+**Layout**
+
+- **The layout system** — content column width and gutters (read from rendered
+  width, so percentage and clamp() containers count), the column count the grids
+  agree on weighted by governed area, the vertical rhythm full-bleed sections use,
+  a numeric gap ladder, and fluid max-width declarations. A genuinely full-bleed
+  page is reported as such, with the widest constrained block inside it.
+
+**Color**
+
+- **Tonal ramps** — a 50–950 ladder per role plus the dominant neutral, generated
+  in OKLCH so the steps are perceptually even, with the site's own colour keeping
+  its rung.
+- **Semantic pairs** — surfaces and action colours paired with the foreground that
+  actually reaches contrast on them, with ratio and WCAG level. A colour the site
+  already uses for text wins; black or white is a marked fallback.
+- **Area-weighted dominance** — colour usage counted elements, so two hundred 16px
+  icons outranked a hero background. Backgrounds now accumulate painted area.
+
+### Fixed
+
+- **Shadow tokens overwrote each other.** css-vars, DTCG tokens and the Tailwind
+  config keyed shadows by size label, so a site with two `md`-band shadows emitted
+  one and silently dropped the other. They key off the elevation ladder now.
+- **`semantic.typography.body` emitted the headline size**, reading `scale[0]` —
+  the largest size, since the scale is sorted descending.
+- **`semantic.shadow.elevated` pointed at `sh0`**, the faintest hairline on the
+  page, rather than a mid rung of the ladder.
+- **`layout.gaps` was string-sorted**, ranking `'10px'` before `'4px'`.
+
 ## [13.1.0] — 2026-08-24
 
 **Design DNA — a measured design space, so "these look similar" stops being an opinion.**

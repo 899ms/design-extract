@@ -104,6 +104,30 @@ function sectionColors(design) {
     lines.push('');
     lines.push('**Neutrals:** ' + neutrals.map(n => `\`${n.hex}\``).join(' · '));
   }
+  const ramps = c.ramps || {};
+  if (Object.keys(ramps).length) {
+    lines.push('');
+    lines.push('**Tonal ramps** (OKLCH, base step in bold)');
+    for (const [role, ramp] of Object.entries(ramps)) {
+      const steps = Object.entries(ramp.steps)
+        .map(([name, hex]) => (name === ramp.anchor ? `**${name} \`${hex}\`**` : `${name} \`${hex}\``))
+        .join(' · ');
+      lines.push(`- ${role}: ${steps}`);
+    }
+  }
+  if (c.pairs?.length) {
+    lines.push('');
+    lines.push('**Measured pairs**');
+    lines.push('| role | bg | fg | contrast |');
+    lines.push('|---|---|---|---|');
+    for (const p of c.pairs) {
+      lines.push(`| ${p.role} | \`${p.background}\` | \`${p.foreground || '—'}\` | ${p.ratio ?? '—'}:1 ${p.level} |`);
+    }
+  }
+  if (c.dominance?.length) {
+    lines.push('');
+    lines.push('**Dominance (share of painted area):** ' + c.dominance.slice(0, 4).map(d => `\`${d.hex}\` ${Math.round(d.areaShare * 100)}%`).join(' · '));
+  }
   if (c.all?.length) {
     lines.push('');
     lines.push(`**Total unique colors detected:** ${c.all.length}.`);
@@ -124,7 +148,24 @@ function sectionTypography(design) {
     lines.push('');
     lines.push(`**Body size:** \`${t.body.size}px\` / line-height \`${t.body.lineHeight ?? '1.5'}\`.`);
   }
-  if (t.headings?.length) {
+  const tsys = t.system;
+  if (tsys) {
+    lines.push('');
+    if (tsys.ratio?.value) lines.push(`**Scale ratio:** \`${tsys.ratio.value}\` (${tsys.ratio.name}) from \`${tsys.ratio.anchor}px\` — ${Math.round(tsys.ratio.coverage * 100)}% of sizes on the ladder.`);
+    else lines.push('**Scale ratio:** irregular — sizes do not follow a modular ratio.');
+    if (tsys.measure) lines.push(`**Measure:** ~${tsys.measure.charsPerLine} characters per line (${tsys.measure.verdict}).`);
+    if (tsys.fluid?.isFluid) lines.push(`**Fluid type:** ${tsys.fluid.count} clamp/viewport sizes${tsys.fluid.inertCount ? ` · ⚠ ${tsys.fluid.inertCount} never scale` : ''}.`);
+    else lines.push('**Fluid type:** none — fixed sizes per breakpoint.');
+  }
+  if (t.roleScale?.length) {
+    lines.push('');
+    lines.push('**Named scale**');
+    lines.push('| role | size | weight | line-height |');
+    lines.push('|---|---|---|---|');
+    for (const step of t.roleScale.slice(0, 10)) {
+      lines.push(`| ${step.role} | \`${step.size}px\` | \`${step.weight}\` | \`${step.lineHeight}\` |`);
+    }
+  } else if (t.headings?.length) {
     lines.push('');
     lines.push('**Heading scale**');
     lines.push('| level | size | weight | line-height |');
@@ -143,6 +184,14 @@ function sectionLayout(design) {
   const lines = [];
   if (sp.base) lines.push(`**Spacing base:** \`${sp.base}px\` increments.`);
   if (sp.scale?.length) lines.push(`**Scale:** ${sp.scale.slice(0, 10).map(s => `\`${(s.value ?? s)}px\``).join(' · ')}`);
+  const lsys = layout.system;
+  if (lsys?.container) {
+    lines.push('');
+    lines.push(`**Content column:** \`${lsys.container.contentWidth}px\`${lsys.container.fullBleed ? ' (full-bleed shell)' : ''}${lsys.container.gutter != null ? ` · gutters \`${lsys.container.gutter}px\`` : ''}`);
+  }
+  if (lsys?.columns) lines.push(`**Column system:** ${lsys.columns.dominant} columns${lsys.columns.canonical ? ' (canonical page grid)' : ''}.`);
+  if (lsys?.rhythm) lines.push(`**Section rhythm:** \`${lsys.rhythm.section}px\` vertical padding.`);
+  if (lsys?.gapScale?.length) lines.push(`**Gap scale:** ${lsys.gapScale.map(g => `\`${g}px\``).join(' · ')}`);
   if (layout.gridCount != null || layout.flexCount != null) {
     lines.push('');
     lines.push(`**Layout primitives:** ${layout.gridCount ?? 0} grid containers · ${layout.flexCount ?? 0} flex containers.`);
@@ -156,9 +205,20 @@ function sectionLayout(design) {
 
 function sectionElevation(design) {
   const sh = design.shadows?.values || [];
+  const ladder = design.shadows?.elevation || [];
+  const shSystem = design.shadows?.system;
   const z = design.zIndex || {};
   const lines = [];
-  if (sh.length) {
+  if (ladder.length) {
+    lines.push('**Elevation ladder**');
+    for (const e of ladder) {
+      lines.push(`- \`${e.name}\` — \`${e.raw}\`${e.layerCount > 1 ? ` · ${e.layerCount} layers` : ''}${e.tint.kind === 'colored' ? ' · tinted' : ''}`);
+    }
+    if (shSystem) {
+      lines.push('');
+      lines.push(`**Shadow system:** ${shSystem.levels} levels from ${shSystem.rawCount} raw values (redundancy ${shSystem.redundancy}×) · ${shSystem.tint} tint.`);
+    }
+  } else if (sh.length) {
     lines.push('**Shadow scale**');
     for (const s of sh.slice(0, 6)) {
       lines.push(`- \`${s.label || '?'}\` — \`${s.raw || s.value}\``);

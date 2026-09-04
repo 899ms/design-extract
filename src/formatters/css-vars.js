@@ -8,6 +8,17 @@ export function formatCssVars(design) {
   if (design.colors.accent) lines.push(`  --color-accent: ${design.colors.accent.hex};`);
   lines.push('');
 
+  // Tonal ramps — the full ladder per role, so hover/active/tint states
+  // don't have to be invented by hand.
+  const ramps = design.colors.ramps || {};
+  for (const [role, ramp] of Object.entries(ramps)) {
+    lines.push(`  /* Ramp — ${role} (base is ${ramp.anchor}) */`);
+    for (const [step, hex] of Object.entries(ramp.steps)) {
+      lines.push(`  --color-${role}-${step}: ${hex};`);
+    }
+    lines.push('');
+  }
+
   if (design.colors.neutrals.length > 0) {
     lines.push('  /* Colors — Neutrals */');
     for (let i = 0; i < design.colors.neutrals.length && i < 10; i++) {
@@ -32,6 +43,19 @@ export function formatCssVars(design) {
     lines.push('');
   }
 
+  // Semantic pairs — surface/foreground combinations that were measured for
+  // contrast rather than guessed.
+  const pairs = design.colors.pairs || [];
+  if (pairs.length > 0) {
+    lines.push('  /* Semantic pairs */');
+    for (const p of pairs) {
+      const key = p.role.replace(/\./g, '-');
+      lines.push(`  --${key}-bg: ${p.background};`);
+      if (p.foreground) lines.push(`  --${key}-fg: ${p.foreground}; /* ${p.ratio}:1 ${p.level} */`);
+    }
+    lines.push('');
+  }
+
   // Typography
   if (design.typography.families.length > 0) {
     lines.push('  /* Typography — Families */');
@@ -48,11 +72,29 @@ export function formatCssVars(design) {
     lines.push('');
   }
 
-  if (design.typography.scale.length > 0) {
+  const roleScale = design.typography.roleScale || [];
+  if (roleScale.length > 0) {
+    lines.push('  /* Typography — Named scale */');
+    for (const step of roleScale.slice(0, 14)) {
+      lines.push(`  --font-size-${step.role}: ${step.size}px;`);
+    }
+    lines.push('');
+  } else if (design.typography.scale.length > 0) {
     lines.push('  /* Typography — Scale */');
     for (const s of design.typography.scale.slice(0, 12)) {
       lines.push(`  --font-size-${s.size}: ${s.size}px;`);
     }
+    lines.push('');
+  }
+
+  // Layout system
+  const layoutSystem = design.layout?.system;
+  if (layoutSystem?.container) {
+    lines.push('  /* Layout */');
+    lines.push(`  --container-width: ${layoutSystem.container.contentWidth}px;`);
+    if (layoutSystem.container.gutter != null) lines.push(`  --container-gutter: ${layoutSystem.container.gutter}px;`);
+    if (layoutSystem.rhythm) lines.push(`  --section-rhythm: ${layoutSystem.rhythm.section}px;`);
+    if (layoutSystem.columns) lines.push(`  --grid-columns: ${layoutSystem.columns.dominant};`);
     lines.push('');
   }
 
@@ -75,10 +117,15 @@ export function formatCssVars(design) {
   }
 
   // Shadows
-  if (design.shadows.values.length > 0) {
+  // Emit the deduped elevation ladder — `label` alone collides (a site can
+  // have three distinct `md` shadows), which silently dropped tokens.
+  const shadowLadder = design.shadows.elevation?.length
+    ? design.shadows.elevation.map(e => [e.name, e.raw])
+    : design.shadows.values.map(s => [s.label, s.raw]);
+  if (shadowLadder.length > 0) {
     lines.push('  /* Box Shadows */');
-    for (const s of design.shadows.values) {
-      lines.push(`  --shadow-${s.label}: ${s.raw};`);
+    for (const [name, raw] of shadowLadder) {
+      lines.push(`  --shadow-${name}: ${raw};`);
     }
     lines.push('');
   }

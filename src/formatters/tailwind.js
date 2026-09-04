@@ -75,8 +75,11 @@ export function formatTailwind(design) {
   }
 
   // Shadows
-  for (const s of design.shadows.values) {
-    config.boxShadow[s.label] = s.raw;
+  const shadowLadder = design.shadows.elevation?.length
+    ? design.shadows.elevation.map(e => [e.name, e.raw])
+    : design.shadows.values.map(s => [s.label, s.raw]);
+  for (const [name, raw] of shadowLadder) {
+    config.boxShadow[name] = raw;
   }
 
   // Breakpoints

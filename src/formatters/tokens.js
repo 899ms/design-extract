@@ -47,8 +47,11 @@ export function formatTokens(design) {
 
   // Shadows
   tokens.shadow = {};
-  for (const s of design.shadows.values) {
-    tokens.shadow[s.label] = { $value: s.raw, $type: 'shadow' };
+  const shadowLadder = design.shadows.elevation?.length
+    ? design.shadows.elevation.map(e => [e.name, e.raw])
+    : design.shadows.values.map(s => [s.label, s.raw]);
+  for (const [name, raw] of shadowLadder) {
+    tokens.shadow[name] = { $value: raw, $type: 'shadow' };
   }
 
   // Breakpoints

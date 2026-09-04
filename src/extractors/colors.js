@@ -1,4 +1,5 @@
 import { parseColor, rgbToHex, rgbToHsl, clusterColors, isSaturated, colorDistance } from '../utils.js';
+import { buildRamp, buildSemanticPairs } from './color-ramps.js';
 
 const INTERACTIVE_TAGS = new Set(['a', 'button']);
 const INTERACTIVE_ROLES = new Set(['button', 'link', 'menuitem', 'tab']);
@@ -15,16 +16,19 @@ function isInteractive(el) {
 export function extractColors(computedStyles) {
   const colorMap = new Map(); // hex -> { hex, parsed, count, contexts: Set, interactiveBg: number }
 
-  function addColor(value, context, { interactive = false } = {}) {
+  function addColor(value, context, { interactive = false, area = 0 } = {}) {
     const parsed = parseColor(value);
     if (!parsed || parsed.a === 0) return;
     const hex = rgbToHex(parsed);
     if (!colorMap.has(hex)) {
-      colorMap.set(hex, { hex, parsed, count: 0, contexts: new Set(), interactiveBg: 0 });
+      colorMap.set(hex, { hex, parsed, count: 0, contexts: new Set(), interactiveBg: 0, area: 0 });
     }
     const entry = colorMap.get(hex);
     entry.count++;
     entry.contexts.add(context);
+    // Painted area, not element count: one hero background outweighs two
+    // hundred 16px icons, which is how a person reads a page.
+    if (context === 'background') entry.area += area;
     if (interactive && context === 'background') entry.interactiveBg++;
   }
 
@@ -33,7 +37,7 @@ export function extractColors(computedStyles) {
   for (const el of computedStyles) {
     const interactive = isInteractive(el);
     addColor(el.color, 'text');
-    addColor(el.backgroundColor, 'background', { interactive });
+    addColor(el.backgroundColor, 'background', { interactive, area: el.area || 0 });
     addColor(el.borderColor, 'border');
 
     if (el.backgroundImage && el.backgroundImage !== 'none' && el.backgroundImage.includes('gradient')) {
@@ -45,8 +49,11 @@ export function extractColors(computedStyles) {
   const clusters = clusterColors(allColors, 15);
 
   // Aggregate interactive-bg score per cluster (sum across members)
+  const totalArea = allColors.reduce((s, c) => s + (c.area || 0), 0);
   for (const cluster of clusters) {
     cluster.interactiveBg = cluster.members.reduce((s, m) => s + (m.interactiveBg || 0), 0);
+    cluster.area = cluster.members.reduce((s, m) => s + (m.area || 0), 0);
+    cluster.areaShare = totalArea > 0 ? cluster.area / totalArea : 0;
     const { s: sat, l: lit } = rgbToHsl(cluster.representative);
     cluster.saturation = sat;
     cluster.lightness = lit;
@@ -89,7 +96,7 @@ export function extractColors(computedStyles) {
   //   saturation comes next (brand colors are usually punchy)
   //   raw usage count is a weak tiebreaker (avoids neutral-heavy sites dominating)
   function brandScore(c) {
-    return c.interactiveBg * 100 + c.saturation * 2 + Math.log10(Math.max(1, c.count));
+    return c.interactiveBg * 100 + c.saturation * 2 + Math.log10(Math.max(1, c.count)) + (c.areaShare || 0) * 10;
   }
   const ranked = [...chromatic].sort((a, b) => brandScore(b) - brandScore(a));
 
@@ -127,7 +134,7 @@ export function extractColors(computedStyles) {
     primaryConfidence = Math.round(primaryConfidence * 100) / 100;
   }
 
-  return {
+  const result = {
     primary: primary ? { hex: primary.hex, rgb: primary.representative, hsl: rgbToHsl(primary.representative), count: primary.count, confidence: primaryConfidence } : null,
     secondary: secondary ? { hex: secondary.hex, rgb: secondary.representative, hsl: rgbToHsl(secondary.representative), count: secondary.count } : null,
     accent: accent ? { hex: accent.hex, rgb: accent.representative, hsl: rgbToHsl(accent.representative), count: accent.count } : null,
@@ -140,7 +147,35 @@ export function extractColors(computedStyles) {
       rgb: c.representative,
       hsl: rgbToHsl(c.representative),
       count: c.count,
+      areaShare: Math.round((c.areaShare || 0) * 1000) / 1000,
       contexts: [...new Set(c.members.flatMap(m => [...m.contexts]))],
     })),
+    // Colours ranked by painted area — what the page actually looks like,
+    // as opposed to what it declares most often.
+    dominance: clusters
+      .filter(c => (c.areaShare || 0) > 0)
+      .sort((a, b) => b.areaShare - a.areaShare)
+      .slice(0, 8)
+      .map(c => ({ hex: c.hex, areaShare: Math.round(c.areaShare * 1000) / 1000 })),
   };
+
+  // Tonal ramps for every named role plus the dominant neutral — one hex is
+  // not a palette, and every downstream consumer (hover states, tinted
+  // surfaces, borders) was left to invent the rest.
+  result.ramps = {};
+  for (const [role, entry] of [['primary', result.primary], ['secondary', result.secondary], ['accent', result.accent]]) {
+    if (!entry?.hex) continue;
+    const ramp = buildRamp(entry.hex);
+    if (ramp) result.ramps[role] = ramp;
+  }
+  const neutralSeed = result.neutrals.slice().sort((a, b) => b.count - a.count)
+    .find(n => n.hsl && n.hsl.l > 10 && n.hsl.l < 90);
+  if (neutralSeed) {
+    const ramp = buildRamp(neutralSeed.hex);
+    if (ramp) result.ramps.neutral = ramp;
+  }
+
+  result.pairs = buildSemanticPairs(result);
+
+  return result;
 }

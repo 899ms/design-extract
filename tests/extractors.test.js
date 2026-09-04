@@ -1,7 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractColors } from '../src/extractors/colors.js';
-import { extractTypography } from '../src/extractors/typography.js';
+import { buildRamp, buildSemanticPairs, contrast } from '../src/extractors/color-ramps.js';
+import { extractTypography, inferTypeRatio, parseFluidValue } from '../src/extractors/typography.js';
 import { extractSpacing } from '../src/extractors/spacing.js';
 import { extractShadows } from '../src/extractors/shadows.js';
 import { extractBorders } from '../src/extractors/borders.js';
@@ -308,6 +309,57 @@ describe('extractShadows', () => {
     for (let i = 1; i < shadows.values.length; i++) {
       assert.ok(shadows.values[i].blur >= shadows.values[i - 1].blur);
     }
+  });
+
+  it('parses multi-layer shadows from the key layer, not the whole string', () => {
+    const shadows = extractShadows([
+      makeEl({ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.1)' }),
+    ]);
+    const s = shadows.values[0];
+    assert.equal(s.layerCount, 2);
+    assert.equal(s.blur, 15);
+    assert.equal(s.offsetY, 10);
+    assert.equal(s.spread, -3);
+    assert.equal(s.label, 'lg');
+  });
+
+  it('builds an ordered elevation ladder and drops near-duplicates', () => {
+    const shadows = extractShadows([
+      makeEl({ boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }),
+      makeEl({ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }),
+      makeEl({ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }),
+      makeEl({ boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }),
+    ]);
+    assert.equal(shadows.elevation.length, 2);
+    assert.deepEqual(shadows.elevation.map(e => e.name), ['xs', 'sm']);
+    // The most-used raw value wins its bucket.
+    assert.equal(shadows.elevation[0].raw, '0 1px 3px rgba(0,0,0,0.06)');
+    assert.ok(shadows.elevation[0].visualWeight < shadows.elevation[1].visualWeight);
+    assert.equal(shadows.system.redundancy, 1.5);
+  });
+
+  it('flags brand-tinted shadows', () => {
+    const shadows = extractShadows([
+      makeEl({ boxShadow: '0 8px 24px rgba(79, 70, 229, 0.35)' }),
+    ]);
+    assert.equal(shadows.values[0].tint.kind, 'colored');
+    assert.equal(shadows.values[0].tint.alpha, 0.35);
+    assert.equal(shadows.system.tint, 'colored');
+  });
+
+  it('reads neutral black shadows as neutral', () => {
+    const shadows = extractShadows([makeEl({ boxShadow: '0 4px 12px rgba(0,0,0,0.15)' })]);
+    assert.equal(shadows.values[0].tint.kind, 'neutral');
+    assert.equal(shadows.system.tint, 'neutral');
+  });
+
+  it('keeps inset shadows out of the elevation ladder', () => {
+    const shadows = extractShadows([
+      makeEl({ boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)' }),
+      makeEl({ boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }),
+    ]);
+    assert.equal(shadows.elevation.length, 1);
+    assert.equal(shadows.system.insetCount, 1);
   });
 });
 
@@ -820,5 +872,278 @@ describe('clusterComponents', () => {
     const out = clusterComponents(els);
     assert.equal(out.length, 1);
     assert.equal(out[0].variants.length, 2);
+  });
+});
+
+// ── Typography system (v13.2) ───────────────────────────────────
+
+describe('typography system', () => {
+  const typeEl = (o) => makeEl({ width: 700, ...o });
+  const styles = [
+    typeEl({ tag: 'h1', fontSize: '48px', fontWeight: '700', letterSpacing: '-0.02em' }),
+    typeEl({ tag: 'h2', fontSize: '32px', fontWeight: '700' }),
+    typeEl({ tag: 'h3', fontSize: '24px', fontWeight: '600' }),
+    typeEl({ tag: 'p', fontSize: '16px', width: 640 }),
+    typeEl({ tag: 'p', fontSize: '16px', width: 640 }),
+    typeEl({ tag: 'span', fontSize: '13px' }),
+  ];
+
+  it('infers a modular ratio from a clean scale', () => {
+    const ratio = inferTypeRatio([16, 20, 25, 31, 39]);
+    assert.equal(ratio.name, 'major third');
+    assert.equal(ratio.value, 1.25);
+    assert.ok(ratio.fit > 0.8);
+    assert.equal(ratio.coverage, 1);
+    assert.equal(ratio.anchor, 16);
+  });
+
+  it('refuses to name a ratio for an irregular scale', () => {
+    const ratio = inferTypeRatio([16, 17, 18, 19, 20, 44]);
+    assert.equal(ratio.value, null);
+    assert.equal(ratio.name, 'irregular');
+    assert.equal(ratio.coverage, 0);
+  });
+
+  it('does not let a small ratio explain everything with big powers', () => {
+    // 1.067^4 lands within 3% of a perfect fourth — without a power penalty
+    // the minor second wins every scale it is offered.
+    const ratio = inferTypeRatio([16, 21.3, 28.4, 37.9]);
+    assert.equal(ratio.name, 'perfect fourth');
+  });
+
+  it('parses clamp() into min/max px', () => {
+    const f = parseFluidValue('clamp(2rem, 4vw + 1rem, 4rem)');
+    assert.equal(f.kind, 'clamp');
+    assert.equal(f.minPx, 32);
+    assert.equal(f.maxPx, 64);
+    assert.equal(f.scales, true);
+  });
+
+  it('flags a clamp whose middle term never scales', () => {
+    const f = parseFluidValue('clamp(1rem, 2rem, 3rem)');
+    assert.equal(f.scales, false);
+  });
+
+  it('parses bare viewport units', () => {
+    const f = parseFluidValue('5vw', { maxViewport: 1440 });
+    assert.equal(f.kind, 'viewport');
+    assert.equal(f.maxPx, 72);
+  });
+
+  it('returns null for a static value', () => {
+    assert.equal(parseFluidValue('18px'), null);
+  });
+
+  it('reserves display for the largest step and orders the rest', () => {
+    const t = extractTypography([
+      typeEl({ tag: 'div', fontSize: '64px' }),
+      typeEl({ tag: 'div', fontSize: '40px' }),
+      typeEl({ tag: 'h1', fontSize: '48px' }),
+      typeEl({ tag: 'p', fontSize: '16px' }),
+    ]);
+    assert.deepEqual(t.roleScale.map(s => [s.role, s.size]), [
+      ['display', 64],
+      ['h1', 48],
+      ['title-1', 40],
+      ['body', 16],
+    ]);
+  });
+
+  it('measures the reading column, not the narrowest paragraph', () => {
+    const t = extractTypography([
+      typeEl({ tag: 'p', fontSize: '16px', width: 640 }),
+      typeEl({ tag: 'p', fontSize: '16px', width: 640 }),
+      ...Array.from({ length: 20 }, () => typeEl({ tag: 'p', fontSize: '16px', width: 180 })),
+    ]);
+    assert.equal(t.system.measure.charsPerLine, 80);
+  });
+
+  it('names every step in the scale', () => {
+    const t = extractTypography(styles);
+    const roles = t.roleScale.map(s => s.role);
+    assert.deepEqual(roles.slice(0, 3), ['h1', 'h2', 'h3']);
+    assert.ok(roles.includes('body'));
+    assert.ok(roles.every(Boolean));
+  });
+
+  it('measures line length for body text', () => {
+    const t = extractTypography(styles);
+    assert.equal(t.system.measure.charsPerLine, 80);
+    assert.equal(t.system.measure.verdict, 'wide');
+  });
+
+  it('reports no measure when there is no body copy', () => {
+    const t = extractTypography([makeEl({ tag: 'div', width: 400 })]);
+    assert.equal(t.system.measure, null);
+  });
+
+  it('folds fluid declarations into the system summary', () => {
+    const t = extractTypography(styles, {
+      fluidValues: [
+        { property: 'font-size', value: 'clamp(2rem, 4vw, 4rem)', selector: 'h1' },
+        { property: 'font-size', value: 'clamp(1rem, 1rem, 1.2rem)', selector: 'p' },
+        { property: 'gap', value: 'clamp(1rem, 2vw, 2rem)', selector: '.grid' },
+      ],
+    });
+    assert.equal(t.system.fluid.isFluid, true);
+    assert.equal(t.system.fluid.count, 2);
+    assert.equal(t.system.fluid.inertCount, 1);
+    assert.equal(t.system.fluid.range.maxPx, 64);
+  });
+
+  it('builds line-height and tracking ladders', () => {
+    const t = extractTypography(styles);
+    assert.ok(t.lineHeights.length > 0);
+    assert.deepEqual(t.tracking.map(x => x.value), ['-0.02em']);
+  });
+});
+
+// ── Layout system (v13.2) ───────────────────────────────────────
+
+describe('layout system', () => {
+  const box = (o) => makeEl({ width: 0, height: 0, area: 0, ...o });
+  const styles = [
+    box({ tag: 'section', width: 1440, height: 600, area: 864000, marginLeft: 'auto', marginRight: 'auto', paddingTop: '96px', paddingBottom: '96px' }),
+    box({ tag: 'section', width: 1440, height: 500, area: 720000, marginLeft: 'auto', marginRight: 'auto', paddingTop: '96px', paddingBottom: '128px' }),
+    box({ tag: 'div', width: 1200, height: 400, area: 480000, maxWidth: '1200px', paddingLeft: '24px', paddingRight: '24px' }),
+    box({ tag: 'div', width: 1200, height: 300, area: 360000, maxWidth: '1200px', paddingLeft: '24px' }),
+    box({ tag: 'div', display: 'grid', width: 1200, height: 300, area: 360000, gridTemplateColumns: 'repeat(12, 1fr)', gap: '32px' }),
+    box({ tag: 'div', display: 'grid', width: 380, height: 200, area: 76000, gridTemplateColumns: '1fr 1fr', gap: '16px' }),
+  ];
+
+  it('finds the content width and gutter', () => {
+    const { system } = extractLayout(styles);
+    assert.equal(system.container.contentWidth, 1200);
+    assert.equal(system.container.gutter, 24);
+    assert.equal(system.density, 0.02);
+  });
+
+  it('picks the column system by area, not by count', () => {
+    const { system } = extractLayout(styles);
+    assert.equal(system.columns.dominant, 12);
+    assert.equal(system.columns.canonical, true);
+  });
+
+  it('reads section rhythm from full-bleed sections', () => {
+    const { system } = extractLayout(styles);
+    assert.equal(system.rhythm.section, 96);
+    assert.deepEqual(system.rhythm.ladder, [96, 128]);
+  });
+
+  it('sorts the gap scale numerically', () => {
+    const { system } = extractLayout([
+      box({ tag: 'div', display: 'flex', width: 400, height: 100, area: 40000, gap: '4px' }),
+      box({ tag: 'div', display: 'flex', width: 400, height: 100, area: 40000, gap: '10px' }),
+      box({ tag: 'div', display: 'flex', width: 400, height: 100, area: 40000, gap: '32px' }),
+    ]);
+    assert.deepEqual(system.gapScale, [4, 10, 32]);
+  });
+
+  it('collects fluid layout declarations', () => {
+    const { system } = extractLayout(styles, {
+      fluidValues: [
+        { property: 'max-width', value: 'clamp(320px, 90vw, 1200px)', selector: '.container' },
+        { property: 'font-size', value: 'clamp(1rem, 2vw, 2rem)', selector: 'h1' },
+      ],
+    });
+    assert.equal(system.fluid.count, 1);
+    assert.equal(system.fluid.declarations[0].property, 'max-width');
+  });
+
+  it('reports a full-bleed shell instead of promoting a card', () => {
+    const { system } = extractLayout([
+      box({ tag: 'div', width: 1440, height: 900, area: 1296000, marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px' }),
+      box({ tag: 'div', width: 440, height: 300, area: 132000, maxWidth: '440px' }),
+    ], { viewportWidth: 1440 });
+    assert.equal(system.container.fullBleed, true);
+    assert.equal(system.container.contentWidth, 1440);
+    assert.equal(system.container.innerWidth, 440);
+    assert.deepEqual(system.container.ladder, [440, 1440]);
+  });
+
+  it('prefers a constrained column when one governs real area', () => {
+    const { system } = extractLayout([
+      box({ tag: 'div', width: 1440, height: 200, area: 288000, marginLeft: 'auto', marginRight: 'auto' }),
+      box({ tag: 'div', width: 1200, height: 800, area: 960000, maxWidth: '1200px', paddingLeft: '32px' }),
+      box({ tag: 'div', width: 1200, height: 600, area: 720000, maxWidth: '1200px', paddingLeft: '32px' }),
+    ], { viewportWidth: 1440 });
+    assert.equal(system.container.fullBleed, false);
+    assert.equal(system.container.contentWidth, 1200);
+    assert.equal(system.container.gutter, 32);
+  });
+
+  it('survives a page with no containers', () => {
+    const { system } = extractLayout([box({ tag: 'div' })]);
+    assert.equal(system.container, null);
+    assert.equal(system.rhythm, null);
+    assert.equal(system.density, null);
+  });
+});
+
+// ── Color system (v13.2) ────────────────────────────────────────
+
+describe('color ramps and pairs', () => {
+  it('builds a perceptually even ramp that keeps the source colour', () => {
+    const ramp = buildRamp('#4f46e5');
+    assert.equal(ramp.base, '#4f46e5');
+    assert.equal(ramp.steps[ramp.anchor], '#4f46e5');
+    assert.equal(Object.keys(ramp.steps).length, 11);
+    // Light steps really are lighter than dark ones.
+    const lum = (hex) => parseInt(hex.slice(1, 3), 16) + parseInt(hex.slice(3, 5), 16) + parseInt(hex.slice(5, 7), 16);
+    assert.ok(lum(ramp.steps['50']) > lum(ramp.steps['500']));
+    assert.ok(lum(ramp.steps['500']) > lum(ramp.steps['950']));
+  });
+
+  it('returns null for an unparseable colour', () => {
+    assert.equal(buildRamp('not-a-colour'), null);
+  });
+
+  it('measures contrast', () => {
+    assert.equal(contrast('#ffffff', '#000000'), 21);
+  });
+
+  it('picks the foreground that actually passes on each surface', () => {
+    const pairs = buildSemanticPairs({
+      backgrounds: ['#ffffff', '#f8fafc'],
+      text: ['#0f172a'],
+      primary: { hex: '#4f46e5' },
+    });
+    const action = pairs.find(p => p.role === 'action.primary');
+    assert.equal(action.foreground, '#ffffff');
+    assert.equal(action.level, 'AA');
+    assert.equal(action.unresolvable, false);
+  });
+
+  it('falls back outside the palette when no site colour passes', () => {
+    const pairs = buildSemanticPairs({ backgrounds: ['#808080'], text: ['#7a7a7a'] });
+    assert.equal(pairs[0].fromPalette, false);
+    assert.equal(pairs[0].foreground, '#000000');
+    assert.equal(pairs[0].unresolvable, false);
+  });
+
+  it('prefers a passing colour the site already ships', () => {
+    const pairs = buildSemanticPairs({ backgrounds: ['#ffffff'], text: ['#0f172a'] });
+    assert.equal(pairs[0].foreground, '#0f172a');
+    assert.equal(pairs[0].fromPalette, true);
+  });
+
+  it('ranks colours by painted area, not by declaration count', () => {
+    const styles = [
+      makeEl({ backgroundColor: 'rgb(255, 255, 255)', area: 900000 }),
+      ...Array.from({ length: 40 }, () => makeEl({ backgroundColor: 'rgb(20, 20, 20)', area: 400 })),
+    ];
+    const colors = extractColors(styles);
+    assert.equal(colors.dominance[0].hex, '#ffffff');
+    assert.ok(colors.dominance[0].areaShare > 0.9);
+  });
+
+  it('attaches ramps for the named roles', () => {
+    const colors = extractColors([
+      makeEl({ tag: 'button', backgroundColor: 'rgb(79, 70, 229)', area: 5000 }),
+      makeEl({ backgroundColor: 'rgb(255, 255, 255)', area: 900000 }),
+    ]);
+    assert.ok(colors.ramps.primary);
+    assert.equal(colors.ramps.primary.base, '#4f46e5');
+    assert.ok(colors.pairs.length > 0);
   });
 });
