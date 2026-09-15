@@ -12,7 +12,7 @@ import { spawn } from 'child_process';
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { fileURLToPath } from 'url';
-import { dirname, join, resolve } from 'path';
+import { basename, dirname, join, resolve } from 'path';
 import { scoreSite, summarize, readDesignlang, readDembrandt, COLOR_TOLERANCE } from './score.js';
 
 const DEMBRANDT_VERSION = '0.33.0';
@@ -133,8 +133,12 @@ const md = [
   '',
 ].join('\n');
 
+// bench/sites.json writes <date>.*; any other set (e.g. holdout.json) writes
+// <date>-<set>.* so one run never overwrites another.
+const set = basename(sitesFile, '.json');
+const name = set === 'sites' ? date : `${date}-${set}`;
 const outDir = join(root, 'bench/results');
 mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, `${date}.json`), JSON.stringify(report, null, 2));
-writeFileSync(join(outDir, `${date}.md`), md);
+writeFileSync(join(outDir, `${name}.json`), JSON.stringify(report, null, 2));
+writeFileSync(join(outDir, `${name}.md`), md);
 console.log(`\n${md}`);
