@@ -87,7 +87,7 @@ for (const [i, truth] of truths.entries()) {
     };
     if (!ok) row.error = `${r.signal ? `killed (${r.signal})` : `exit ${r.code}`}: ${(r.stderr.trim().split('\n').pop() || '').slice(0, 160)}`;
     rows[name].push(row);
-    const mark = (hit) => (hit ? '✓' : '✗');
+    const mark = (hit) => (hit === null ? '–' : hit ? '✓' : '✗');
     console.log(`${truth.site.padEnd(24)} ${name.padEnd(10)} ${ok ? `colour ${mark(row.score.color)} font ${mark(row.score.font)}` : row.error} ${row.seconds}s`);
   }
 }
