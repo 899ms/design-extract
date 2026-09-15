@@ -68,8 +68,9 @@ export async function run({ outputDir }) {
   const resources = buildResources({ design, tokens });
   const tools = buildTools({ design, tokens });
 
+  const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf-8'));
   const server = new Server(
-    { name: 'designlang', version: '7.0.0' },
+    { name: 'designlang', version },
     { capabilities: { resources: {}, tools: {} } },
   );
 
