@@ -4,7 +4,7 @@
 // component screenshots dir so output stays organised. Writes to
 // `screenshots/responsive/<breakpoint>-<scheme>.png` and returns an index.
 
-import { chromium } from 'playwright';
+import { launchChromium } from '../browser.js';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 
@@ -16,7 +16,7 @@ const BREAKPOINTS = [
 ];
 
 async function captureAt(url, dir, bp, scheme, channel) {
-  const browser = await chromium.launch({ headless: true, ...(channel && { channel }) });
+  const browser = await launchChromium({ headless: true, ...(channel && { channel }) });
   try {
     const ctx = await browser.newContext({
       viewport: { width: bp.width, height: bp.height },

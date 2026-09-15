@@ -11,7 +11,7 @@
 // not re-implement extraction. That keeps this thin and lets every extractor
 // improve automatically when v10+ gains more signals.
 
-import { chromium } from 'playwright';
+import { launchChromium } from './browser.js';
 import { extractPageIntent } from './extractors/page-intent.js';
 
 const PAGE_TYPE_RANK = [
@@ -198,7 +198,7 @@ export function computeCrossPageConsistency(pages) {
 export async function crawlCanonicalPages({ homepageUrl, homepageRawData, maxPages = 5, extract, crawlerOptions = {} }) {
   // `extract` is injected so we can reuse the full single-page pipeline without
   // circular imports (index.js → multipage.js → index.js).
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchChromium({ headless: true });
   const context = await browser.newContext({
     viewport: { width: crawlerOptions.width || 1280, height: crawlerOptions.height || 800 },
     colorScheme: 'light',

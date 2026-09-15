@@ -6,7 +6,7 @@
 //
 // Usage: designlang replay <url> [--duration 5] [--out dir]
 
-import { chromium } from 'playwright';
+import { launchChromium } from './browser.js';
 import { mkdirSync, existsSync, readdirSync, statSync, renameSync, unlinkSync, rmdirSync } from 'fs';
 import { resolve, join } from 'path';
 import { spawnSync } from 'child_process';
@@ -35,7 +35,7 @@ export async function recordReplay(url, opts = {}) {
   const videoDir = join(outDir, `.playwright-video-${Date.now()}`);
   mkdirSync(videoDir, { recursive: true });
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchChromium({ headless: true });
   const context = await browser.newContext({
     viewport: { width, height },
     recordVideo: { dir: videoDir, size: { width, height } },

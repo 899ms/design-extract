@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libxss1 libxtst6 wget \
     && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g designlang && npx playwright install chromium
+RUN npm install -g designlang && designlang install-browser
 
 WORKDIR /app
 ENTRYPOINT ["npx", "designlang", "mcp"]

@@ -1,10 +1,10 @@
 // Interaction state extraction — hover, focus, active styles
 
-import { chromium } from 'playwright';
+import { launchChromium } from '../browser.js';
 
 export async function captureInteractions(url, options = {}) {
   const { width = 1280, height = 800, wait = 0 } = options;
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchChromium({ headless: true });
   const context = await browser.newContext({ viewport: { width, height } });
   const page = await context.newPage();
 

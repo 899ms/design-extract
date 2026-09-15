@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { launchChromium } from './browser.js';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 import { extractMediaDarkColors } from './extractors/dark-mode-pair.js';
@@ -53,7 +54,7 @@ export async function crawlPage(url, options = {}) {
   // require Playwright's protocol on a path like /playwright/chromium.
   const browser = usingRemote
     ? await chromium.connectOverCDP(wsEndpoint, { timeout: 30000 })
-    : await chromium.launch({
+    : await launchChromium({
         headless: true,
         ...(executablePath && { executablePath }),
         // channel: 'chrome' forces Playwright to use the system Chrome install

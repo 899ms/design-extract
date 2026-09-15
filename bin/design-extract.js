@@ -274,8 +274,8 @@ program
       if (merged.full || merged.screenshots) {
         spinner.text = 'Extracting logo...';
         try {
-          const { chromium } = await import('playwright');
-          const browser = await chromium.launch({ headless: true, ...(merged.systemChrome && { channel: 'chrome' }) });
+          const { launchChromium } = await import('../src/browser.js');
+          const browser = await launchChromium({ headless: true, ...(merged.systemChrome && { channel: 'chrome' }) });
           const ctx = await browser.newContext({ viewport: { width: merged.width, height: parseInt(merged.height) || 800 } });
           const lp = await ctx.newPage();
           await lp.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
@@ -724,9 +724,9 @@ program
         process.exit(1);
       }
       spinner.fail('Extraction failed');
-      if (err.message.includes('playwright')) {
-        console.error(chalk.red('\n  Playwright is not installed.'));
-        console.error(chalk.gray('  Run: npx playwright install chromium\n'));
+      if (err.code === 'BROWSER_UNAVAILABLE' || err.message.includes('playwright')) {
+        console.error(chalk.red('\n  No browser available.'));
+        console.error(chalk.gray('  Run: npx designlang install-browser (or install Google Chrome)\n'));
       } else {
         console.error(chalk.red(`\n  ${err.message}\n`));
         if (opts.verbose) console.error(err.stack);
@@ -2371,9 +2371,9 @@ program
       const { chromium } = await import('playwright');
       const bin = chromium.executablePath();
       if (existsSync(bin)) add('Chromium binary', bin, 'OK');
-      else add('Chromium binary', 'not installed', 'FAIL', 'npx playwright install chromium');
+      else add('Chromium binary', 'not installed', 'FAIL', 'npx designlang install-browser');
     } catch {
-      add('Chromium binary', 'not resolvable', 'FAIL', 'npx playwright install chromium');
+      add('Chromium binary', 'not resolvable', 'FAIL', 'npx designlang install-browser');
     }
 
     const outDir = resolve('./design-extract-output');
@@ -2514,6 +2514,21 @@ program
   .action(async (opts) => {
     const { run } = await import('../src/mcp/server.js');
     await run(opts);
+  });
+
+// ── Browser install ────────────────────────────────────────
+program
+  .command('install-browser')
+  .description('Download the Chromium build designlang drives (no longer done at npm install)')
+  .option('--with-deps', 'also install the system libraries Chromium needs (Linux CI)')
+  .action(async (opts) => {
+    const { createRequire } = await import('module');
+    const { spawnSync } = await import('child_process');
+    // playwright's exports map hides cli.js, so locate it from package.json.
+    const pwDir = dirname(createRequire(import.meta.url).resolve('playwright/package.json'));
+    const args = [join(pwDir, 'cli.js'), 'install', ...(opts.withDeps ? ['--with-deps'] : []), 'chromium'];
+    const r = spawnSync(process.execPath, args, { stdio: 'inherit' });
+    process.exit(r.status ?? 1);
   });
 
 program.parse();
