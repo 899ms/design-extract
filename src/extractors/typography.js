@@ -21,6 +21,11 @@ function rendersText(el) {
   return el.hasText !== false && !NON_RENDERING_TAGS.has(el.tag);
 }
 
+// Code faces. Syntax highlighting draws every token as its own text element, so
+// on tailwindcss.com plexMono out-counted Inter 450 to 131. A code face is never
+// the body font and sorts after the text faces.
+const MONO_FAMILY_RE = /mono|code|consol|courier|menlo|monaco/i;
+
 function normaliseFamily(raw) {
   if (!raw) return null;
   // Strip quotes + take the first stack member (sites declare e.g.
@@ -349,8 +354,9 @@ export function extractTypography(computedStyles, options = {}) {
 
   // Unique font families sorted by usage
   const families = [...familyCount.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => MONO_FAMILY_RE.test(a[0]) - MONO_FAMILY_RE.test(b[0]) || b[1] - a[1])
     .map(([name, count]) => {
+      if (MONO_FAMILY_RE.test(name)) return { name, count, usage: 'mono' };
       const usedOn = computedStyles
         .filter(el => el.fontFamily?.includes(name) && rendersText(el))
         .map(el => el.tag);

@@ -61,6 +61,27 @@ describe('brand colour ranking', () => {
     assert.equal(extractColors(styles).primary.hex, '#ff4800');
   });
 
+  it('a near-black used everywhere does not outrank the brand blue (atlassian: #101214 x702, 21% area)', () => {
+    const styles = [
+      ...page(),
+      ...times(700, () => el({ tag: 'span', color: '#101214' })),
+      ...times(2, () => el({ tag: 'button', bg: '#101214', color: '#ffffff', area: 180_000 })),
+      ...times(200, () => el({ tag: 'a', color: '#1868db' })),
+      el({ tag: 'button', bg: '#1868db', color: '#ffffff', area: 2500 }),
+    ];
+    assert.equal(extractColors(styles).primary.hex, '#1868db');
+  });
+
+  it('one full-page background does not outrank the brand colour on buttons and text (discord: 84% area)', () => {
+    const styles = [
+      ...page(),
+      el({ tag: 'main', bg: '#1a2081', area: 6_000_000 }),
+      ...times(2, () => el({ tag: 'a', bg: '#5865f2', color: '#ffffff', area: 3000 })),
+      ...times(33, () => el({ tag: 'span', color: '#5865f2' })),
+    ];
+    assert.equal(extractColors(styles).primary.hex, '#5865f2');
+  });
+
   it('a CTA colour used on many buttons still wins over a dark accent surface (hubspot)', () => {
     const styles = [
       ...page(),

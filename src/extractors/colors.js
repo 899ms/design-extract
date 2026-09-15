@@ -99,12 +99,18 @@ export function extractColors(computedStyles) {
   //   interactive backgrounds: a strong signal, with diminishing returns
   //   chroma, not HSL saturation: near-black #002533 has s=100 but reads dark
   //   usage and painted area: a brand colour is repeated across the page
+  // Evidence of use counts only in proportion to how colourful the cluster is:
+  // near-black #101214 on atlassian.com (chroma 1.5) got in through two dark
+  // buttons and then won on 702 uses. Area has diminishing returns, since one
+  // full-page background (84% of discord.com) is a surface, not repetition.
   function brandScore(c) {
     const chroma = ((100 - Math.abs(2 * c.lightness - 100)) * c.saturation) / 100;
-    return 40 * Math.log2(1 + c.interactiveBg)
-      + chroma
+    const colourful = Math.min(1, chroma / 30);
+    return chroma + colourful * (
+      40 * Math.log2(1 + c.interactiveBg)
       + 25 * Math.log10(Math.max(1, c.count))
-      + 300 * (c.areaShare || 0);
+      + 60 * Math.sqrt(c.areaShare || 0)
+    );
   }
   // The browser's default link colours say nothing about the brand.
   const UA_LINK_COLORS = new Set(['#0000ee', '#551a8b']);

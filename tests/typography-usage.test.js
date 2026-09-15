@@ -56,6 +56,21 @@ describe('typography family usage', () => {
     assert.deepEqual(names, ['GDS Transport']);
   });
 
+  it('a code face is not the body font, however many highlighted tokens it draws (tailwindcss, resend)', () => {
+    const styles = [
+      // syntax highlighting: every token is its own text element
+      ...Array.from({ length: 450 }, () => el('span', 'plexMono, ui-monospace, monospace', { hasText: true })),
+      ...Array.from({ length: 90 }, () => el('p', 'inter, system-ui, sans-serif', { hasText: true })),
+      ...Array.from({ length: 41 }, () => el('h2', 'inter, system-ui, sans-serif', { hasText: true })),
+      ...Array.from({ length: 144 }, () => el('span', '"Source Code Pro", monospace', { hasText: true })),
+    ];
+    const typo = extractTypography(styles);
+    assert.equal(typo.families[0].name, 'inter', 'the text face leads the family list');
+    assert.equal(typo.families.find((f) => f.name === 'plexMono').usage, 'mono');
+    assert.equal(typo.families.find((f) => f.name === 'Source Code Pro').usage, 'mono');
+    assert.equal(typo.families.find((f) => f.name === 'inter').usage, 'all');
+  });
+
   it('still counts records captured before hasText existed', () => {
     const typo = extractTypography([el('p', '"Inter", sans-serif'), el('h2', '"Inter", sans-serif')]);
     assert.equal(typo.families[0].name, 'Inter');
