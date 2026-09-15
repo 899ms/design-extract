@@ -719,9 +719,10 @@ program
       }
 
     } catch (err) {
+      const { exitCodeForError } = await import('../src/exit-codes.js');
       if (jsonMode) {
         process.stderr.write(JSON.stringify({ error: err.message }) + '\n');
-        process.exit(1);
+        process.exit(exitCodeForError(err));
       }
       spinner.fail('Extraction failed');
       if (err.code === 'BROWSER_UNAVAILABLE' || err.message.includes('playwright')) {
@@ -731,7 +732,7 @@ program
         console.error(chalk.red(`\n  ${err.message}\n`));
         if (opts.verbose) console.error(err.stack);
       }
-      process.exit(1);
+      process.exit(exitCodeForError(err));
     }
   });
 
@@ -2032,10 +2033,12 @@ program
       }
       if (!r.findings.length) console.log(chalk.green('  ✓ no issues found'));
       console.log('');
-      process.exit(r.findings.some(f => f.severity === 'error') ? 1 : 0);
+      const { EXIT } = await import('../src/exit-codes.js');
+      process.exit(r.findings.some(f => f.severity === 'error') ? EXIT.DRIFT : EXIT.OK);
     } catch (err) {
+      const { exitCodeForError } = await import('../src/exit-codes.js');
       process.stderr.write(chalk.red(`\n  Error: ${err.message}\n\n`));
-      process.exit(1);
+      process.exit(exitCodeForError(err));
     }
   });
 
@@ -2056,10 +2059,12 @@ program
       if (opts.json) { process.stdout.write(JSON.stringify(r, null, 2) + '\n'); }
       else { console.log('\n' + formatDriftMarkdown(r) + '\n'); }
       const order = ['in-sync', 'minor-drift', 'notable-drift', 'major-drift'];
-      if (order.indexOf(r.verdict) >= order.indexOf(opts.failOn)) process.exit(1);
+      const { EXIT } = await import('../src/exit-codes.js');
+      if (order.indexOf(r.verdict) >= order.indexOf(opts.failOn)) process.exit(EXIT.DRIFT);
     } catch (err) {
+      const { exitCodeForError } = await import('../src/exit-codes.js');
       process.stderr.write(chalk.red(`\n  Error: ${err.message}\n\n`));
-      process.exit(1);
+      process.exit(exitCodeForError(err));
     }
   });
 
@@ -2304,10 +2309,12 @@ program
         console.log('');
         console.log(r.md);
       }
-      if (r.shouldFail) process.exit(1);
+      const { EXIT } = await import('../src/exit-codes.js');
+      if (r.shouldFail) process.exit(EXIT.DRIFT);
     } catch (err) {
+      const { exitCodeForError } = await import('../src/exit-codes.js');
       spinner.fail(err.message);
-      process.exit(1);
+      process.exit(exitCodeForError(err));
     }
   });
 

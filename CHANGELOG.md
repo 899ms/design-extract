@@ -1,5 +1,65 @@
 # Changelog
 
+## [13.3.0] — 2026-09-15
+
+**Ship it where people run it: releases, installs, agents and CI.**
+
+Extraction was already strong; what failed people was everything around it.
+npm `latest` sat three months behind the repo, `npm install` downloaded a
+browser that CI and Docker can't, the MCP server couldn't extract a URL, and
+every failure exited `1`.
+
+**Releases**
+
+- **npm publishes from CI on every `vX.Y.Z` tag**, with provenance. A tag that
+  doesn't match `package.json` fails the release.
+
+**Install**
+
+- **No browser download at `npm install`.** Run `designlang install-browser`
+  (`--with-deps` on bare Linux) to fetch the Chromium matching the bundled
+  Playwright.
+- **One launcher everywhere.** All 13 launch sites try the bundled Chromium,
+  then system Chrome, then fail with an error that names the fix.
+
+**MCP server v2**
+
+- **Extract live URLs as jobs.** `extract_design` returns a job id;
+  `get_job_status`, `list_jobs`, `cancel_job`.
+- **Read, diff, lint and export by job id:** `get_tokens`, `get_colors`,
+  `get_typography`, `get_components`, `compute_drift`, `get_findings`, and
+  `export` (dtcg, tailwind, shadcn, figma, css, design-md).
+- **Conformance.** An `initialize` without `protocolVersion` is served on the
+  default revision instead of rejected (#182, #183); `serverInfo.version` is the
+  package version (it said 7.0.0); `import 'designlang/mcp'` resolves (the export
+  pointed at a missing file).
+- The folder-backed tools and resources are unchanged.
+
+**Exit codes**
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | Drift over threshold (`drift`, `ci`, `lint`) |
+| `2` | Extraction failed: page error, bad input, no browser |
+| `3` | Navigation timeout: retryable |
+
+**GitHub Action**
+
+- **Installs the designlang version it was tagged with**, then the browser.
+- **One PR annotation per changed token**, escaped, since values come from the
+  audited site.
+- **Says why a job failed**: drift, extraction failure or timeout.
+- Fixed: with zero changes, `changed-count` was written as `0` twice, which broke
+  the `changed` output.
+
+**Breaking**
+
+- The Action's `fail-on-change` now defaults to `true`. Pass `false` to keep
+  report-only behaviour.
+- Extraction failures exit `2` or `3` instead of `1`.
+- A fresh install needs `designlang install-browser` or a system Chrome.
+
 ## [13.2.0] — 2026-08-31
 
 **Depth pass on extraction: the inventories become systems.**
