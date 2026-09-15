@@ -95,10 +95,12 @@ export function readDembrandt(output) {
   };
 }
 
+// A dimension with no ground truth (a monochrome brand, a system body font)
+// scores null: not counted, rather than counted against either tool.
 export function scoreSite(truth, predicted) {
   return {
-    color: colorHit(predicted?.primary, truth.primary),
-    font: fontHit(predicted?.font, truth.font),
+    color: truth.primary?.length ? colorHit(predicted?.primary, truth.primary) : null,
+    font: truth.font?.length ? fontHit(predicted?.font, truth.font) : null,
   };
 }
 
@@ -109,14 +111,17 @@ function median(nums) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-// rows: [{ site, ok, seconds, score: { color, font } }] for one tool.
+// rows: [{ site, ok, seconds, score: { color, font } }] for one tool. A failed
+// run keeps its false scores, so it counts as a miss wherever truth exists.
 export function summarize(rows) {
   const ran = rows.filter((r) => r.ok);
   return {
     sites: rows.length,
     failures: rows.length - ran.length,
-    colorHits: ran.filter((r) => r.score.color).length,
-    fontHits: ran.filter((r) => r.score.font).length,
+    colorSites: rows.filter((r) => r.score.color !== null).length,
+    colorHits: rows.filter((r) => r.score.color === true).length,
+    fontSites: rows.filter((r) => r.score.font !== null).length,
+    fontHits: rows.filter((r) => r.score.font === true).length,
     medianSeconds: median(ran.map((r) => r.seconds)),
   };
 }

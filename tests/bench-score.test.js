@@ -92,9 +92,17 @@ describe('bench score: summary', () => {
 
     const rows = [
       { site: 'a', ok: true, seconds: 10, score: { color: true, font: true } },
-      { site: 'b', ok: true, seconds: 20, score: { color: false, font: true } },
+      { site: 'b', ok: true, seconds: 20, score: { color: null, font: true } },
       { site: 'c', ok: false, seconds: 180, score: { color: false, font: false } },
     ];
-    assert.deepEqual(summarize(rows), { sites: 3, failures: 1, colorHits: 1, fontHits: 2, medianSeconds: 15 });
+    assert.deepEqual(summarize(rows), {
+      sites: 3, failures: 1, colorSites: 2, colorHits: 1, fontSites: 3, fontHits: 2, medianSeconds: 15,
+    });
+  });
+
+  it('does not score a dimension without ground truth, and a failed run misses the rest', () => {
+    const monochrome = { primary: [], font: ['Inter'] };
+    assert.deepEqual(scoreSite(monochrome, { primary: '#000000', font: 'Inter Variable' }), { color: null, font: true });
+    assert.deepEqual(scoreSite(monochrome, null), { color: null, font: false });
   });
 });

@@ -83,7 +83,7 @@ for (const [i, truth] of truths.entries()) {
       ok,
       seconds: +r.seconds.toFixed(1),
       predicted,
-      score: ok ? scoreSite(truth, predicted) : { color: false, font: false },
+      score: scoreSite(truth, ok ? predicted : null),
     };
     if (!ok) row.error = `${r.signal ? `killed (${r.signal})` : `exit ${r.code}`}: ${(r.stderr.trim().split('\n').pop() || '').slice(0, 160)}`;
     rows[name].push(row);
@@ -105,7 +105,13 @@ const report = {
 };
 
 const pct = (n, d) => (d ? `${Math.round((n / d) * 100)}%` : '—');
-const cell = (row, key) => (!row.ok ? 'failed' : `${row.score[key] ? '✅' : '❌'} ${row.predicted[key === 'color' ? 'primary' : 'font'] ?? '—'}`);
+const ratio = (hits, total) => `${hits}/${total} (${pct(hits, total)})`;
+const cell = (row, key) => {
+  if (row.score[key] === null) return 'n/a';
+  if (!row.ok) return '❌ failed';
+  return `${row.score[key] ? '✅' : '❌'} ${row.predicted[key === 'color' ? 'primary' : 'font'] ?? '—'}`;
+};
+const truthText = (s) => `${s.primary?.length ? s.primary.join(' / ') : 'n/a'} · ${s.font?.length ? s.font.join(' / ') : 'n/a'}`;
 const md = [
   `# Extraction benchmark — ${date}`,
   '',
@@ -114,14 +120,14 @@ const md = [
   '',
   '| | designlang | dembrandt |',
   '|---|---|---|',
-  `| Primary colour correct | ${summary.designlang.colorHits}/${truths.length} (${pct(summary.designlang.colorHits, truths.length)}) | ${summary.dembrandt.colorHits}/${truths.length} (${pct(summary.dembrandt.colorHits, truths.length)}) |`,
-  `| Body font correct | ${summary.designlang.fontHits}/${truths.length} (${pct(summary.designlang.fontHits, truths.length)}) | ${summary.dembrandt.fontHits}/${truths.length} (${pct(summary.dembrandt.fontHits, truths.length)}) |`,
+  `| Primary colour correct | ${ratio(summary.designlang.colorHits, summary.designlang.colorSites)} | ${ratio(summary.dembrandt.colorHits, summary.dembrandt.colorSites)} |`,
+  `| Body font correct | ${ratio(summary.designlang.fontHits, summary.designlang.fontSites)} | ${ratio(summary.dembrandt.fontHits, summary.dembrandt.fontSites)} |`,
   `| Failed runs | ${summary.designlang.failures} | ${summary.dembrandt.failures} |`,
   `| Median time | ${summary.designlang.medianSeconds ?? '—'}s | ${summary.dembrandt.medianSeconds ?? '—'}s |`,
   '',
   '| Site | Truth | designlang colour | dembrandt colour | designlang font | dembrandt font |',
   '|---|---|---|---|---|---|',
-  ...report.sites.map((s) => `| ${s.site} | ${s.primary.join(' / ')} · ${s.font.join(' / ')} | ${cell(s.designlang, 'color')} | ${cell(s.dembrandt, 'color')} | ${cell(s.designlang, 'font')} | ${cell(s.dembrandt, 'font')} |`),
+  ...report.sites.map((s) => `| ${s.site} | ${truthText(s)} |${cell(s.designlang, 'color')} | ${cell(s.dembrandt, 'color')} | ${cell(s.designlang, 'font')} | ${cell(s.dembrandt, 'font')} |`),
   '',
   'Reproduce: `node bench/run.mjs`. Ground truth and sources: `bench/sites.json`.',
   '',
