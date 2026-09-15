@@ -8,7 +8,7 @@
 // same machine, alternating which goes first per site. Every result is written
 // to bench/results/<date>.{json,md}, losses included.
 
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { fileURLToPath } from 'url';
@@ -16,7 +16,7 @@ import { basename, dirname, join, resolve } from 'path';
 import { scoreSite, summarize, readDesignlang, readDembrandt, COLOR_TOLERANCE } from './score.js';
 
 const DEMBRANDT_VERSION = '0.33.0';
-const TIMEOUT_MS = 180_000;
+const TIMEOUT_MS = Number(process.env.BENCH_TIMEOUT_MS) || 180_000;
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 function arg(name, fallback) {
@@ -30,18 +30,48 @@ function runTool(cmd, args) {
   return new Promise((done) => {
     const cwd = mkdtempSync(join(tmpdir(), 'designlang-bench-'));
     const started = Date.now();
-    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    // detached: the tool gets its own process group, so the timeout can kill
+    // it. Playwright starts Chromium in a group of its own, though, and a live
+    // browser kept a "180s" run going to 363s (3029s once, through npx). So:
+    // each run gets its own TMPDIR, which is where the browser profile lands,
+    // the timeout also kills anything whose command line names that directory,
+    // and the result is recorded without waiting for the pipes to close.
+    const child = spawn(cmd, args, {
+      cwd,
+      env: { ...process.env, TMPDIR: cwd },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true,
+    });
     let stdout = '';
     let stderr = '';
+    let settled = false;
     child.stdout.on('data', (d) => { stdout += d; });
     child.stderr.on('data', (d) => { stderr += d; });
-    const timer = setTimeout(() => child.kill('SIGKILL'), TIMEOUT_MS);
-    child.on('close', (code, signal) => {
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      // Time the run, not the cleanup: removing a browser profile can take seconds.
+      const seconds = (Date.now() - started) / 1000;
       clearTimeout(timer);
       rmSync(cwd, { recursive: true, force: true });
-      done({ code, signal, stdout, stderr, seconds: (Date.now() - started) / 1000 });
-    });
+      done({ ...result, stdout, stderr, seconds });
+    };
+    const timer = setTimeout(() => {
+      try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
+      spawnSync('pkill', ['-KILL', '-f', cwd]);
+      finish({ code: null, signal: 'SIGKILL', timedOut: true });
+    }, TIMEOUT_MS);
+    child.on('close', (code, signal) => finish({ code, signal, timedOut: false }));
   });
+}
+
+// A dropped connection says nothing about either tool, so a run that fails
+// with a network-level error is retried once, for both tools alike.
+const NETWORK_ERROR_RE = /ERR_INTERNET_DISCONNECTED|ERR_NETWORK_CHANGED|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION_RESET/;
+async function extractOnce(tool, site) {
+  const first = await tool.extract(site);
+  if (first.code === 0 || first.timedOut || !NETWORK_ERROR_RE.test(first.stdout + first.stderr)) return first;
+  return { ...(await tool.extract(site)), retried: true };
 }
 
 function parseJson(stdout) {
@@ -74,7 +104,7 @@ const rows = { designlang: [], dembrandt: [] };
 for (const [i, truth] of truths.entries()) {
   const order = i % 2 ? ['dembrandt', 'designlang'] : ['designlang', 'dembrandt'];
   for (const name of order) {
-    const r = await TOOLS[name].extract(truth.site);
+    const r = await extractOnce(TOOLS[name], truth.site);
     let predicted = null;
     try { predicted = TOOLS[name].read(parseJson(r.stdout)); } catch { /* recorded as a failure */ }
     const ok = r.code === 0 && predicted != null;
@@ -85,7 +115,11 @@ for (const [i, truth] of truths.entries()) {
       predicted,
       score: scoreSite(truth, ok ? predicted : null),
     };
-    if (!ok) row.error = `${r.signal ? `killed (${r.signal})` : `exit ${r.code}`}: ${(r.stderr.trim().split('\n').pop() || '').slice(0, 160)}`;
+    if (r.retried) row.retried = true;
+    if (!ok) {
+      const why = r.timedOut ? `timed out after ${TIMEOUT_MS / 1000}s` : r.signal ? `killed (${r.signal})` : `exit ${r.code}`;
+      row.error = `${why}: ${(r.stderr.trim().split('\n').pop() || '').slice(0, 160)}`;
+    }
     rows[name].push(row);
     const mark = (hit) => (hit === null ? '–' : hit ? '✓' : '✗');
     console.log(`${truth.site.padEnd(24)} ${name.padEnd(10)} ${ok ? `colour ${mark(row.score.color)} font ${mark(row.score.font)}` : row.error} ${row.seconds}s`);
@@ -117,6 +151,7 @@ const md = [
   '',
   `designlang ${TOOLS.designlang.version} vs dembrandt ${DEMBRANDT_VERSION}, default settings, ${truths.length} sites, ${report.platform}, Node ${process.version}.`,
   `A colour counts when it is within ΔE ${COLOR_TOLERANCE} (CIE76) of the site's brand colour; a font counts when it names the body-text family.`,
+  `Each run is capped at ${TIMEOUT_MS / 1000}s. A run that failed with a network-level error was retried once, for either tool (${[...rows.designlang, ...rows.dembrandt].filter((r) => r.retried).length} retries).`,
   '',
   '| | designlang | dembrandt |',
   '|---|---|---|',
