@@ -58,6 +58,17 @@
     "design-similarity",
     "design-dna"
   ],
-  "author": "masyv",
-  "license": "MIT"
+  "author": {
+    "name": "Manav Arya Singh",
+    "url": "https://www.manavaryasingh.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Manavarya09/design-extract.git"
+  },
+  "homepage": "https://designlang.app",
+  "bugs": {
+    "url": "https://github.com/Manavarya09/design-extract/issues"
+  }
 }

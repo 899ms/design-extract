@@ -6,8 +6,12 @@
   <a href="https://www.npmjs.com/package/designlang"><img src="https://img.shields.io/npm/v/designlang?color=0A0908&labelColor=F3F1EA&label=npm" alt="npm version"></a>
   <a href="https://github.com/Manavarya09/design-extract/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Manavarya09/design-extract?color=0A0908&labelColor=F3F1EA" alt="license"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/node/v/designlang?color=0A0908&labelColor=F3F1EA" alt="node version"></a>
-  <a href="https://designlang.manavaryasingh.com/"><img src="https://img.shields.io/badge/website-live-FF4800?labelColor=F3F1EA" alt="website"></a>
+  <a href="https://designlang.app/"><img src="https://img.shields.io/badge/website-live-FF4800?labelColor=F3F1EA" alt="website"></a>
 
+</p>
+
+<p align="center">
+  Built by <a href="https://www.manavaryasingh.com">Manav Arya Singh</a> (<a href="https://github.com/Manavarya09">@Manavarya09</a>)
 </p>
 
 <p align="center">
@@ -505,5 +509,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). PRs welcome!
 
 ## License
 
-[MIT](LICENSE) - Manav Arya Singh !!
+[MIT](LICENSE) - [Manav Arya Singh](https://www.manavaryasingh.com) !!
 
