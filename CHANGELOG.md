@@ -53,6 +53,26 @@ every failure exited `1`.
 - Fixed: with zero changes, `changed-count` was written as `0` twice, which broke
   the `changed` output.
 
+**Extraction accuracy** — found by a new head-to-head benchmark (`bench/`)
+
+- **`--json` output was truncated at 64KB when piped.** `designlang https://gov.uk --json | jq`
+  received 65,536 of 70,583 bytes. The CLI now exits only after stdout has
+  flushed; `drift --json` too.
+- **Body font counts only where text renders.** `<meta>`, `<link>` and other
+  head elements carry the browser default (Times) without drawing anything, which
+  made Times dropbox.com's body font. Code faces (plexMono, commitMono, Source
+  Code Pro) are labelled `mono` and sort after the text faces, so syntax
+  highlighting no longer outvotes the body font. `typography.families[].usage`
+  gains `other` and `mono`.
+- **Themes, Tailwind and CSS vars give the body slot to the most used body
+  family** and never overwrite it (supabase's Tailwind `body` had become Source
+  Code Pro).
+- **Brand colour is ranked by chroma, repetition and painted area**, not decided
+  by one call-to-action button. Near-black and near-white can't win on volume,
+  one full-page background can't win on area, and the browser's default link
+  colours are ignored. Fixes gov.uk, atlassian, discord, mailchimp, duolingo and
+  framer.
+
 **Breaking**
 
 - The Action's `fail-on-change` now defaults to `true`. Pass `false` to keep
