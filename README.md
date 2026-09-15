@@ -11,6 +11,11 @@
 </p>
 
 <p align="center">
+  <a href="https://trendshift.io/repositories/26231?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-26231" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/26231/daily?language=JavaScript" alt="Manavarya09%2Fdesign-extract | Trendshift" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/26231?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-26231" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/26231/weekly?language=JavaScript" alt="Manavarya09%2Fdesign-extract | Trendshift" width="250" height="55"/></a>
+</p>
+
+<p align="center">
   Built by <a href="https://www.manavaryasingh.com">Manav Arya Singh</a> (<a href="https://github.com/Manavarya09">@Manavarya09</a>)
 </p>
 
