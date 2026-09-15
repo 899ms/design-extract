@@ -362,8 +362,9 @@ program
       // JSON mode: output and exit
       if (jsonMode) {
         const output = opts.jsonPretty ? JSON.stringify(design, null, 2) : JSON.stringify(design);
-        process.stdout.write(output + '\n');
-        process.exit(0);
+        const { EXIT, writeThenExit } = await import('../src/exit-codes.js');
+        writeThenExit(process.stdout, output + '\n', EXIT.OK);
+        return;
       }
 
       spinner.text = 'Generating outputs...';
@@ -2003,8 +2004,9 @@ program
         process.stdout.write(output + '\n');
       }
     } catch (err) {
+      const { exitCodeForError } = await import('../src/exit-codes.js');
       process.stderr.write(`Error: ${err.message}\n`);
-      process.exit(1);
+      process.exit(exitCodeForError(err));
     }
   });
 
@@ -2056,11 +2058,12 @@ program
     try {
       const { checkDrift, formatDriftMarkdown } = await import('../src/drift.js');
       const r = await checkDrift(url, { tokens: resolve(opts.tokens), tolerance: opts.tolerance });
-      if (opts.json) { process.stdout.write(JSON.stringify(r, null, 2) + '\n'); }
-      else { console.log('\n' + formatDriftMarkdown(r) + '\n'); }
       const order = ['in-sync', 'minor-drift', 'notable-drift', 'major-drift'];
-      const { EXIT } = await import('../src/exit-codes.js');
-      if (order.indexOf(r.verdict) >= order.indexOf(opts.failOn)) process.exit(EXIT.DRIFT);
+      const { EXIT, writeThenExit } = await import('../src/exit-codes.js');
+      const code = order.indexOf(r.verdict) >= order.indexOf(opts.failOn) ? EXIT.DRIFT : EXIT.OK;
+      if (opts.json) return writeThenExit(process.stdout, JSON.stringify(r, null, 2) + '\n', code);
+      console.log('\n' + formatDriftMarkdown(r) + '\n');
+      if (code !== EXIT.OK) process.exit(code);
     } catch (err) {
       const { exitCodeForError } = await import('../src/exit-codes.js');
       process.stderr.write(chalk.red(`\n  Error: ${err.message}\n\n`));

@@ -77,21 +77,25 @@ function mostUsed(entries, nameKey) {
   return best?.[0] ?? null;
 }
 
-// Both readers apply the same rule: the family each tool labels as body text,
-// else its most used family. Neither tool is judged on its heading face.
+// Both readers apply the same rule: the most used of the families each tool
+// says sets body text, else its most used family overall. Neither tool is
+// judged on its heading face.
 export function readDesignlang(design) {
   const families = design?.typography?.families || [];
+  // designlang marks a family used for both headings and body as "all".
+  const body = families.filter((f) => f.usage === 'body' || f.usage === 'all');
   return {
     primary: toHex(design?.colors?.primary),
-    font: families.find((f) => f.usage === 'body')?.name ?? mostUsed(families, 'name'),
+    font: mostUsed(body, 'name') ?? mostUsed(families, 'name'),
   };
 }
 
 export function readDembrandt(output) {
   const styles = output?.typography?.styles || [];
+  const body = styles.filter((s) => s.context === 'body');
   return {
     primary: toHex(output?.colors?.semantic?.primary),
-    font: styles.find((s) => s.context === 'body')?.family ?? mostUsed(styles, 'family'),
+    font: mostUsed(body, 'family') ?? mostUsed(styles, 'family'),
   };
 }
 

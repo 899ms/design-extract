@@ -9,6 +9,13 @@ export const EXIT = Object.freeze({
   NAVIGATION_TIMEOUT: 3, // retryable: try --wait or a later run
 });
 
+// process.exit() straight after a write to a pipe drops whatever hasn't been
+// flushed: `designlang <url> --json | jq` received the first 64KB of a 70KB
+// document. Exit only once the write has been handed to the OS.
+export function writeThenExit(stream, text, code) {
+  stream.write(text, () => process.exit(code));
+}
+
 export function exitCodeForError(err) {
   if (err?.name === 'TimeoutError' || /Timeout \d+ms exceeded/.test(err?.message || '')) return EXIT.NAVIGATION_TIMEOUT;
   return EXIT.EXTRACTION_FAILED;

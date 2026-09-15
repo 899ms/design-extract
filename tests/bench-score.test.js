@@ -14,6 +14,15 @@ describe('bench score: reading each tool', () => {
     assert.equal(readDesignlang(design).font, 'Inter');
   });
 
+  it('counts a family used everywhere as body, and picks the most used (gov.uk)', () => {
+    const design = { colors: {}, typography: { families: [
+      { name: 'GDS Transport', count: 580, usage: 'all' },
+      { name: 'Times', count: 6, usage: 'body' },
+      { name: 'Arial', count: 3, usage: 'body' },
+    ] } };
+    assert.equal(readDesignlang(design).font, 'GDS Transport');
+  });
+
   it('reads dembrandt primary (rgb) and body context', () => {
     const out = {
       colors: { semantic: { primary: 'rgb(83, 58, 253)' } },
