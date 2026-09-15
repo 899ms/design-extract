@@ -22,4 +22,5 @@ docs/MCP-REGISTRY.md
 docs/demo.tape
 docs/superpowers/
 tests/
+bench/
 .github/
