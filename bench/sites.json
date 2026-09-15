@@ -1,0 +1,37 @@
+{
+  "method": "primary: officially sourced brand colours that are actually painted on the live homepage (bench/evidence.mjs, dE <= 3 at 1280x800). An empty list means no sourced colour is on the page (or the brand is monochrome), so colour is not scored for that site. font: the family that renders body copy (first family in the computed stack with a loaded font face), plus the official name where it agrees. Collected 2026-09-15.",
+  "sites": [
+    { "site": "stripe.com", "primary": ["#533afd"], "font": ["sohne-var", "Söhne"], "sources": ["https://stripe.com/newsroom/brand-assets", "https://klim.co.nz/in-use/stripe/"], "evidence": "#533afd painted (dE 0); the older #635bff from the brand-assets CSS is not on the page" },
+    { "site": "linear.app", "primary": ["#5e6ad2"], "font": ["Inter Variable", "Inter"], "sources": ["https://linear.app/brand"], "evidence": "#5e6ad2 painted (dE 0); brand page names a desaturated blue without a hex" },
+    { "site": "vercel.com", "primary": [], "font": ["GeistSans", "Geist"], "sources": ["https://vercel.com/font"], "evidence": "no official brand colour; monochrome" },
+    { "site": "github.com", "primary": [], "font": ["Mona Sans"], "sources": ["https://brand.github.com/foundations/color", "https://brand.github.com/foundations/typography"], "evidence": "brand hero green #0fbf3e is not painted on the homepage (closest dE 20.9)" },
+    { "site": "gov.uk", "primary": ["#1d70b8"], "font": ["GDS Transport"], "sources": ["https://brand.design-system.service.gov.uk/colour/app", "https://brand.design-system.service.gov.uk/typography/"], "evidence": "#1d70b8 painted (dE 0)" },
+    { "site": "ikea.com", "primary": ["#0058a3", "#ffda1a"], "font": ["Noto IKEA"], "sources": ["https://www.ikea.com/ph/en/this-is-ikea/about-us/the-ikea-logo-history-and-design-pub55d85f50/"], "evidence": "blue painted as #0159a3 (dE 0.9), yellow as #ffdb00 (dE 3); co-equal brand colours" },
+    { "site": "notion.so", "primary": [], "font": ["NotionInter", "Inter"], "sources": ["https://www.notion.com/brand"], "evidence": "no official brand colour; font from rendering" },
+    { "site": "tailwindcss.com", "primary": [], "font": ["Inter"], "sources": ["https://tailwindcss.com/brand"], "evidence": "logo sky #38bdf8 is not painted on the homepage (closest dE 50.6)" },
+    { "site": "spotify.com", "primary": ["#1ed760"], "font": ["SpotifyMixUI", "Spotify Mix"], "sources": ["https://newsroom.spotify.com/2024-05-22/introducing-spotify-mix-our-new-and-exclusive-font/"], "evidence": "#1ed760 painted (dE 0); legacy #1db954 is not" },
+    { "site": "airbnb.com", "primary": ["#ff385c"], "font": ["Airbnb Cereal VF", "Airbnb Cereal"], "sources": ["https://airbnb.design/cereal/"], "evidence": "#ff385c painted (dE 0, small area)" },
+    { "site": "slack.com", "primary": ["#4a154b"], "font": ["Salesforce Sans"], "sources": ["https://a.slack-edge.com/4d5bb/marketing/img/media-kit/slack_brand_guidelines_september2020.pdf"], "evidence": "aubergine painted (dE 0); site renders Salesforce Sans, not the Slack Circular named in the 2020 guidelines" },
+    { "site": "atlassian.com", "primary": ["#1868db"], "font": ["Charlie Text"], "sources": ["https://atlassian.design/foundations/typography", "https://atlassian.design/foundations/color/color-palette"], "evidence": "#1868db painted (dE 0); legacy #0052cc is not; body renders Charlie Text" },
+    { "site": "discord.com", "primary": ["#5865f2"], "font": ["ABC Ginto Discord"], "sources": ["https://discord.com/branding"], "evidence": "blurple painted (dE 0); the website renders ABC Ginto, gg sans is the app face" },
+    { "site": "dropbox.com", "primary": ["#0061fe"], "font": ["Atlas Grotesk"], "sources": ["https://brand.dropbox.com/color"], "evidence": "#0061fe painted (dE 0); body renders Atlas Grotesk Web" },
+    { "site": "mailchimp.com", "primary": ["#ffe01b"], "font": ["Graphik"], "sources": ["https://mailchimp.com/about/brand-assets/"], "evidence": "Cavendish yellow painted (dE 0); body renders Graphik Web" },
+    { "site": "duolingo.com", "primary": ["#58cc02"], "font": ["duolingo-sans"], "sources": ["https://blog.duolingo.com/hub/design"], "evidence": "feather green painted (dE 0)" },
+    { "site": "asana.com", "primary": [], "font": ["TWK Lausanne"], "sources": ["https://asana.com/brand"], "evidence": "coral (#f06a6a / #ff584a) is not painted on the homepage" },
+    { "site": "hubspot.com", "primary": ["#ff4800"], "font": ["HubSpot Sans"], "sources": ["https://www.hubspot.com/partners/technology/branding-guidelines"], "evidence": "#ff4800 painted (dE 0); pre-2025 #ff7a59 is not" },
+    { "site": "netflix.com", "primary": ["#e50914"], "font": ["Netflix Sans"], "sources": ["https://brand.netflix.com/en/assets/"], "evidence": "#e50914 painted (dE 0)" },
+    { "site": "paypal.com", "primary": ["#002991"], "font": ["PayPal Pro"], "sources": ["https://www.pentagram.com/work/paypal"], "evidence": "#002991 painted (dE 0); #008cff is not" },
+    { "site": "uber.com", "primary": [], "font": ["UberMoveText", "Uber Move Text"], "sources": ["https://base.uber.com/6d2425e9f/p/976582-typography"], "evidence": "monochrome brand; font official and rendered" },
+    { "site": "mozilla.org", "primary": [], "font": ["Mozilla Text"], "sources": ["https://protocol.mozilla.org/docs/fundamentals/typography"], "evidence": "no official hex; font official and rendered" },
+    { "site": "shopify.com", "primary": [], "font": ["Shopify-Inter"], "sources": ["https://www.shopify.com/brand-assets"], "evidence": "#008060 is not painted on the homepage (closest dE 34.3)" },
+    { "site": "supabase.com", "primary": ["#3ecf8e"], "font": ["Inter"], "sources": ["https://supabase.com/brand-assets"], "evidence": "#3ecf8e painted (dE 0, small area)" },
+    { "site": "resend.com", "primary": [], "font": ["Inter"], "sources": ["https://resend.com/design.md"], "evidence": "monochrome brand (black/white); Inter for body per resend.com/design.md" },
+    { "site": "framer.com", "primary": ["#0099ff"], "font": ["Inter Variable", "Inter"], "sources": ["https://www.framer.com/brand"], "evidence": "Framer Blue #0099ff painted (dE 0); #0055ff is not" },
+    { "site": "figma.com", "primary": [], "font": ["figmaSans", "Figma Sans"], "sources": ["https://www.figma.com/blog/the-story-of-creating-figma-sans/"], "evidence": "no single brand colour since the 2024 refresh" }
+  ],
+  "excluded": [
+    { "site": "twitch.tv", "reason": "TLS certificate error (ERR_CERT_AUTHORITY_INVALID) from the benchmark network, on both twitch.tv and www.twitch.tv, before either tool could extract" },
+    { "site": "coinbase.com", "reason": "headless Chromium was served a page with a system font stack and only browser-default link colours: no brand colour or font to score" },
+    { "site": "reddit.com", "reason": "headless Chromium was served a page with a system font stack and none of the brand OrangeRed: no brand colour or font to score" }
+  ]
+}
