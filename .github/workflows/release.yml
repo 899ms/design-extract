@@ -1,0 +1,59 @@
+name: release
+
+# Publishes designlang to npm when a vX.Y.Z tag is pushed.
+#
+# npm `latest` once sat three months behind the repo (12.21.0 vs 13.2.0) because
+# publishing was a manual step. Tagging is now the whole release.
+#
+# Requires the NPM_TOKEN repository secret (an npm automation token).
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+  id-token: write # npm provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Tag must match package.json
+        run: |
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "${GITHUB_REF_NAME#v}" != "$PKG" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json $PKG"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tests
+        run: npm test
+
+      - name: Check plugin manifest version sync
+        run: npm run check-plugin
+
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "designlang@$VERSION" version >/dev/null 2>&1; then
+            echo "designlang@$VERSION is already on npm, nothing to publish"
+            exit 0
+          fi
+          npm publish --provenance --access public

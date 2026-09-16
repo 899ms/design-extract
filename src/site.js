@@ -6,12 +6,12 @@
 // caller and passed in, so we never re-extract it. Per-page failures are
 // recorded, never thrown — one dead route can't kill the run.
 
-import { chromium } from 'playwright';
+import { launchChromium } from './browser.js';
 import { discoverCanonicalPages, collectLinks } from './multipage.js';
 import { synthesizeSite } from './site-synthesis.js';
 
 export async function crawlSite({ homepageUrl, homepageDesign, maxPages = 6, extract, crawlerOptions = {}, onProgress }) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchChromium({ headless: true });
   const context = await browser.newContext({
     viewport: { width: crawlerOptions.width || 1280, height: crawlerOptions.height || 800 },
     colorScheme: 'light',

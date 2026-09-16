@@ -220,8 +220,14 @@ than no score at all:
 
 ```bash
 npm i -g designlang                         # global
+designlang install-browser                  # one-time: the Chromium designlang drives
 npx skills add Manavarya09/design-extract   # as an agent skill (40+ agents)
 ```
+
+`npm install` no longer downloads a browser, so it works in CI, Docker and
+behind proxies. `install-browser` fetches the Chromium matching the bundled
+Playwright (add `--with-deps` on bare Linux). Without it, designlang falls back
+to an installed Google Chrome.
 
 ## Use in Claude Code (plugin)
 
@@ -254,9 +260,17 @@ the commands are available:
 | `/gallery [dir]` | build a static shareable gallery of measured clones |
 | `/dna <url>` | place a design in the measured design space — nearest systems, per-axis percentiles, outliers |
 
-> Prefer the raw MCP tools? The CLI also ships an MCP server — run
-> `designlang mcp --output-dir ./design-extract-output` to serve the latest
-> extraction's tokens to any MCP client.
+> Prefer raw MCP tools? The CLI ships an MCP server that extracts live URLs:
+>
+> ```bash
+> claude mcp add designlang -- npx -y designlang mcp
+> ```
+>
+> `extract_design(url)` returns a job id; poll `get_job_status`, then pass the
+> id to `get_tokens`, `get_colors`, `get_typography`, `get_components`,
+> `get_findings`, `compute_drift` (against a baseline job) or `export`
+> (dtcg, tailwind, shadcn, figma, css, design-md). Add `--output-dir <dir>` to
+> also serve an extraction already on disk as resources.
 
 ## Atlas Cloud for `--smart`
 
@@ -430,7 +444,8 @@ Commands:
   brands <urls...>                  Multi-brand comparison matrix
   sync <url>                        Sync local tokens with live site
   history <url>                     View design change history
-  mcp                               Launch stdio MCP server (--output-dir <dir>)
+  install-browser                   Download the Chromium designlang drives (--with-deps on bare Linux)
+  mcp                               Launch stdio MCP server: extract live URLs as jobs (--output-dir <dir> also serves one on disk)
   lint <file>                       (v9) Audit a local token file (.json/.css) — CI-ready
   drift <url> --tokens <file>       (v9) Check local tokens for drift against a live site
   visual-diff <before> <after>      (v9) Side-by-side HTML diff of two URLs

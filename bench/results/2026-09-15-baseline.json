@@ -1,0 +1,1079 @@
+{
+  "date": "2026-09-15",
+  "node": "v22.16.0",
+  "platform": "darwin-arm64",
+  "tools": {
+    "designlang": "13.3.0",
+    "dembrandt": "0.33.0"
+  },
+  "colorTolerance": 10,
+  "summary": {
+    "designlang": {
+      "sites": 27,
+      "failures": 0,
+      "colorSites": 17,
+      "colorHits": 9,
+      "fontSites": 27,
+      "fontHits": 25,
+      "medianSeconds": 12.6
+    },
+    "dembrandt": {
+      "sites": 27,
+      "failures": 0,
+      "colorSites": 17,
+      "colorHits": 12,
+      "fontSites": 27,
+      "fontHits": 25,
+      "medianSeconds": 24.6
+    }
+  },
+  "sites": [
+    {
+      "site": "stripe.com",
+      "primary": [
+        "#533afd"
+      ],
+      "font": [
+        "sohne-var",
+        "Söhne"
+      ],
+      "sources": [
+        "https://stripe.com/newsroom/brand-assets",
+        "https://klim.co.nz/in-use/stripe/"
+      ],
+      "evidence": "#533afd painted (dE 0); the older #635bff from the brand-assets CSS is not on the page",
+      "designlang": {
+        "site": "stripe.com",
+        "ok": true,
+        "seconds": 9.2,
+        "predicted": {
+          "primary": "#533afd",
+          "font": "sohne-var"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "stripe.com",
+        "ok": true,
+        "seconds": 31.4,
+        "predicted": {
+          "primary": "#533afd",
+          "font": "sohne-var"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "linear.app",
+      "primary": [
+        "#5e6ad2"
+      ],
+      "font": [
+        "Inter Variable",
+        "Inter"
+      ],
+      "sources": [
+        "https://linear.app/brand"
+      ],
+      "evidence": "#5e6ad2 painted (dE 0); brand page names a desaturated blue without a hex",
+      "designlang": {
+        "site": "linear.app",
+        "ok": true,
+        "seconds": 9.6,
+        "predicted": {
+          "primary": "#e4f222",
+          "font": "Inter Variable"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "linear.app",
+        "ok": true,
+        "seconds": 18.8,
+        "predicted": {
+          "primary": "#27a644",
+          "font": "Inter Variable"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "vercel.com",
+      "primary": [],
+      "font": [
+        "GeistSans",
+        "Geist"
+      ],
+      "sources": [
+        "https://vercel.com/font"
+      ],
+      "evidence": "no official brand colour; monochrome",
+      "designlang": {
+        "site": "vercel.com",
+        "ok": true,
+        "seconds": 12.5,
+        "predicted": {
+          "primary": "#0072f5",
+          "font": "GeistSans"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "vercel.com",
+        "ok": true,
+        "seconds": 14.1,
+        "predicted": {
+          "primary": "#0070f3",
+          "font": "GeistSans"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "github.com",
+      "primary": [],
+      "font": [
+        "Mona Sans"
+      ],
+      "sources": [
+        "https://brand.github.com/foundations/color",
+        "https://brand.github.com/foundations/typography"
+      ],
+      "evidence": "brand hero green #0fbf3e is not painted on the homepage (closest dE 20.9)",
+      "designlang": {
+        "site": "github.com",
+        "ok": true,
+        "seconds": 19.1,
+        "predicted": {
+          "primary": "#08872b",
+          "font": "Mona Sans VF"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "github.com",
+        "ok": true,
+        "seconds": 20.4,
+        "predicted": {
+          "primary": "#08872b",
+          "font": "Mona Sans"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "gov.uk",
+      "primary": [
+        "#1d70b8"
+      ],
+      "font": [
+        "GDS Transport"
+      ],
+      "sources": [
+        "https://brand.design-system.service.gov.uk/colour/app",
+        "https://brand.design-system.service.gov.uk/typography/"
+      ],
+      "evidence": "#1d70b8 painted (dE 0)",
+      "designlang": {
+        "site": "gov.uk",
+        "ok": true,
+        "seconds": 1.9,
+        "predicted": {
+          "primary": "#0f7a52",
+          "font": "GDS Transport"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "gov.uk",
+        "ok": true,
+        "seconds": 11.8,
+        "predicted": {
+          "primary": "#1d70b8",
+          "font": "GDS Transport"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "ikea.com",
+      "primary": [
+        "#0058a3",
+        "#ffda1a"
+      ],
+      "font": [
+        "Noto IKEA"
+      ],
+      "sources": [
+        "https://www.ikea.com/ph/en/this-is-ikea/about-us/the-ikea-logo-history-and-design-pub55d85f50/"
+      ],
+      "evidence": "blue painted as #0159a3 (dE 0.9), yellow as #ffdb00 (dE 3); co-equal brand colours",
+      "designlang": {
+        "site": "ikea.com",
+        "ok": true,
+        "seconds": 9,
+        "predicted": {
+          "primary": "#0159a3",
+          "font": "Noto IKEA"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "ikea.com",
+        "ok": true,
+        "seconds": 18.9,
+        "predicted": {
+          "primary": "#ffdb00",
+          "font": "Noto IKEA"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "notion.so",
+      "primary": [],
+      "font": [
+        "NotionInter",
+        "Inter"
+      ],
+      "sources": [
+        "https://www.notion.com/brand"
+      ],
+      "evidence": "no official brand colour; font from rendering",
+      "designlang": {
+        "site": "notion.so",
+        "ok": true,
+        "seconds": 7.7,
+        "predicted": {
+          "primary": "#0075de",
+          "font": "NotionInter"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "notion.so",
+        "ok": true,
+        "seconds": 17,
+        "predicted": {
+          "primary": "#0075de",
+          "font": "NotionInter"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "tailwindcss.com",
+      "primary": [],
+      "font": [
+        "Inter"
+      ],
+      "sources": [
+        "https://tailwindcss.com/brand"
+      ],
+      "evidence": "logo sky #38bdf8 is not painted on the homepage (closest dE 50.6)",
+      "designlang": {
+        "site": "tailwindcss.com",
+        "ok": true,
+        "seconds": 9.9,
+        "predicted": {
+          "primary": "#0080ff",
+          "font": "inter"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "tailwindcss.com",
+        "ok": true,
+        "seconds": 23.4,
+        "predicted": {
+          "primary": "#90a1b9",
+          "font": "inter"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "spotify.com",
+      "primary": [
+        "#1ed760"
+      ],
+      "font": [
+        "SpotifyMixUI",
+        "Spotify Mix"
+      ],
+      "sources": [
+        "https://newsroom.spotify.com/2024-05-22/introducing-spotify-mix-our-new-and-exclusive-font/"
+      ],
+      "evidence": "#1ed760 painted (dE 0); legacy #1db954 is not",
+      "designlang": {
+        "site": "spotify.com",
+        "ok": true,
+        "seconds": 8.2,
+        "predicted": {
+          "primary": "#1ed760",
+          "font": "SpotifyMixUI"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "spotify.com",
+        "ok": true,
+        "seconds": 20.1,
+        "predicted": {
+          "primary": "#1ed760",
+          "font": "SpotifyMixUI"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "airbnb.com",
+      "primary": [
+        "#ff385c"
+      ],
+      "font": [
+        "Airbnb Cereal VF",
+        "Airbnb Cereal"
+      ],
+      "sources": [
+        "https://airbnb.design/cereal/"
+      ],
+      "evidence": "#ff385c painted (dE 0, small area)",
+      "designlang": {
+        "site": "airbnb.com",
+        "ok": true,
+        "seconds": 33.2,
+        "predicted": {
+          "primary": "#ff385c",
+          "font": "Airbnb Cereal VF"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "airbnb.com",
+        "ok": true,
+        "seconds": 30.7,
+        "predicted": {
+          "primary": "#ff385c",
+          "font": "Airbnb Cereal VF"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "slack.com",
+      "primary": [
+        "#4a154b"
+      ],
+      "font": [
+        "Salesforce Sans"
+      ],
+      "sources": [
+        "https://a.slack-edge.com/4d5bb/marketing/img/media-kit/slack_brand_guidelines_september2020.pdf"
+      ],
+      "evidence": "aubergine painted (dE 0); site renders Salesforce Sans, not the Slack Circular named in the 2020 guidelines",
+      "designlang": {
+        "site": "slack.com",
+        "ok": true,
+        "seconds": 33.1,
+        "predicted": {
+          "primary": "#611f69",
+          "font": "Salesforce-Sans"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "slack.com",
+        "ok": true,
+        "seconds": 18,
+        "predicted": {
+          "primary": "#611f69",
+          "font": "Salesforce-Sans"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "atlassian.com",
+      "primary": [
+        "#1868db"
+      ],
+      "font": [
+        "Charlie Text"
+      ],
+      "sources": [
+        "https://atlassian.design/foundations/typography",
+        "https://atlassian.design/foundations/color/color-palette"
+      ],
+      "evidence": "#1868db painted (dE 0); legacy #0052cc is not; body renders Charlie Text",
+      "designlang": {
+        "site": "atlassian.com",
+        "ok": true,
+        "seconds": 34.2,
+        "predicted": {
+          "primary": "#1868db",
+          "font": "Charlie Text"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "atlassian.com",
+        "ok": true,
+        "seconds": 34.3,
+        "predicted": {
+          "primary": "#1868db",
+          "font": "Charlie Text"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "discord.com",
+      "primary": [
+        "#5865f2"
+      ],
+      "font": [
+        "ABC Ginto Discord"
+      ],
+      "sources": [
+        "https://discord.com/branding"
+      ],
+      "evidence": "blurple painted (dE 0); the website renders ABC Ginto, gg sans is the app face",
+      "designlang": {
+        "site": "discord.com",
+        "ok": true,
+        "seconds": 34,
+        "predicted": {
+          "primary": "#5865f2",
+          "font": "Ggsans"
+        },
+        "score": {
+          "color": true,
+          "font": false
+        }
+      },
+      "dembrandt": {
+        "site": "discord.com",
+        "ok": true,
+        "seconds": 27.9,
+        "predicted": {
+          "primary": "#5865f2",
+          "font": "Abcgintodiscord"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "dropbox.com",
+      "primary": [
+        "#0061fe"
+      ],
+      "font": [
+        "Atlas Grotesk"
+      ],
+      "sources": [
+        "https://brand.dropbox.com/color"
+      ],
+      "evidence": "#0061fe painted (dE 0); body renders Atlas Grotesk Web",
+      "designlang": {
+        "site": "dropbox.com",
+        "ok": true,
+        "seconds": 8.5,
+        "predicted": {
+          "primary": "#0061fe",
+          "font": "Times"
+        },
+        "score": {
+          "color": true,
+          "font": false
+        }
+      },
+      "dembrandt": {
+        "site": "dropbox.com",
+        "ok": true,
+        "seconds": 25.5,
+        "predicted": {
+          "primary": "#0061fe",
+          "font": "Atlas Grotesk Web"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "mailchimp.com",
+      "primary": [
+        "#ffe01b"
+      ],
+      "font": [
+        "Graphik"
+      ],
+      "sources": [
+        "https://mailchimp.com/about/brand-assets/"
+      ],
+      "evidence": "Cavendish yellow painted (dE 0); body renders Graphik Web",
+      "designlang": {
+        "site": "mailchimp.com",
+        "ok": true,
+        "seconds": 33.5,
+        "predicted": {
+          "primary": "#ffe01b",
+          "font": "Graphik Web"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "mailchimp.com",
+        "ok": true,
+        "seconds": 24.6,
+        "predicted": {
+          "primary": "#ffe01b",
+          "font": "Graphik Web"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "duolingo.com",
+      "primary": [
+        "#58cc02"
+      ],
+      "font": [
+        "duolingo-sans"
+      ],
+      "sources": [
+        "https://blog.duolingo.com/hub/design"
+      ],
+      "evidence": "feather green painted (dE 0)",
+      "designlang": {
+        "site": "duolingo.com",
+        "ok": true,
+        "seconds": 33.7,
+        "predicted": {
+          "primary": "#ddf4ff",
+          "font": "duolingo-sans"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "duolingo.com",
+        "ok": true,
+        "seconds": 32,
+        "predicted": {
+          "primary": "#a5ed6e",
+          "font": "duolingo-sans"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "asana.com",
+      "primary": [],
+      "font": [
+        "TWK Lausanne"
+      ],
+      "sources": [
+        "https://asana.com/brand"
+      ],
+      "evidence": "coral (#f06a6a / #ff584a) is not painted on the homepage",
+      "designlang": {
+        "site": "asana.com",
+        "ok": true,
+        "seconds": 123.9,
+        "predicted": {
+          "primary": "#273240",
+          "font": "TWK Lausanne"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "asana.com",
+        "ok": true,
+        "seconds": 33.5,
+        "predicted": {
+          "primary": "#ffc9ff",
+          "font": "TWK Lausanne"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "hubspot.com",
+      "primary": [
+        "#ff4800"
+      ],
+      "font": [
+        "HubSpot Sans"
+      ],
+      "sources": [
+        "https://www.hubspot.com/partners/technology/branding-guidelines"
+      ],
+      "evidence": "#ff4800 painted (dE 0); pre-2025 #ff7a59 is not",
+      "designlang": {
+        "site": "hubspot.com",
+        "ok": true,
+        "seconds": 33.3,
+        "predicted": {
+          "primary": "#061c1d",
+          "font": "HubSpot Sans"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "hubspot.com",
+        "ok": true,
+        "seconds": 68,
+        "predicted": {
+          "primary": "#ff4800",
+          "font": "HubSpot Sans"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "netflix.com",
+      "primary": [
+        "#e50914"
+      ],
+      "font": [
+        "Netflix Sans"
+      ],
+      "sources": [
+        "https://brand.netflix.com/en/assets/"
+      ],
+      "evidence": "#e50914 painted (dE 0)",
+      "designlang": {
+        "site": "netflix.com",
+        "ok": true,
+        "seconds": 9.7,
+        "predicted": {
+          "primary": "#e50914",
+          "font": "Netflix Sans"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "netflix.com",
+        "ok": true,
+        "seconds": 23.1,
+        "predicted": {
+          "primary": "#e50914",
+          "font": "sans-serif"
+        },
+        "score": {
+          "color": true,
+          "font": false
+        }
+      }
+    },
+    {
+      "site": "paypal.com",
+      "primary": [
+        "#002991"
+      ],
+      "font": [
+        "PayPal Pro"
+      ],
+      "sources": [
+        "https://www.pentagram.com/work/paypal"
+      ],
+      "evidence": "#002991 painted (dE 0); #008cff is not",
+      "designlang": {
+        "site": "paypal.com",
+        "ok": true,
+        "seconds": 33.8,
+        "predicted": {
+          "primary": "#053782",
+          "font": "PayPal Pro Text VF"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "paypal.com",
+        "ok": true,
+        "seconds": 25.2,
+        "predicted": {
+          "primary": "#0000ee",
+          "font": "PayPal Pro Text VF"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "uber.com",
+      "primary": [],
+      "font": [
+        "UberMoveText",
+        "Uber Move Text"
+      ],
+      "sources": [
+        "https://base.uber.com/6d2425e9f/p/976582-typography"
+      ],
+      "evidence": "monochrome brand; font official and rendered",
+      "designlang": {
+        "site": "uber.com",
+        "ok": true,
+        "seconds": 6.1,
+        "predicted": {
+          "primary": "#0000ee",
+          "font": "UberMoveText"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "uber.com",
+        "ok": true,
+        "seconds": 16.4,
+        "predicted": {
+          "primary": null,
+          "font": "sans-serif"
+        },
+        "score": {
+          "color": null,
+          "font": false
+        }
+      }
+    },
+    {
+      "site": "mozilla.org",
+      "primary": [],
+      "font": [
+        "Mozilla Text"
+      ],
+      "sources": [
+        "https://protocol.mozilla.org/docs/fundamentals/typography"
+      ],
+      "evidence": "no official hex; font official and rendered",
+      "designlang": {
+        "site": "mozilla.org",
+        "ok": true,
+        "seconds": 5.6,
+        "predicted": {
+          "primary": null,
+          "font": "Mozilla Text"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "mozilla.org",
+        "ok": true,
+        "seconds": 16.9,
+        "predicted": {
+          "primary": "#161616",
+          "font": "Mozilla Text"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "shopify.com",
+      "primary": [],
+      "font": [
+        "Shopify-Inter"
+      ],
+      "sources": [
+        "https://www.shopify.com/brand-assets"
+      ],
+      "evidence": "#008060 is not painted on the homepage (closest dE 34.3)",
+      "designlang": {
+        "site": "shopify.com",
+        "ok": true,
+        "seconds": 9.8,
+        "predicted": {
+          "primary": "#000a1e",
+          "font": "Shopify-Inter"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "shopify.com",
+        "ok": true,
+        "seconds": 49.3,
+        "predicted": {
+          "primary": "#1e2c31",
+          "font": "Shopify-Inter"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "supabase.com",
+      "primary": [
+        "#3ecf8e"
+      ],
+      "font": [
+        "Inter"
+      ],
+      "sources": [
+        "https://supabase.com/brand-assets"
+      ],
+      "evidence": "#3ecf8e painted (dE 0, small area)",
+      "designlang": {
+        "site": "supabase.com",
+        "ok": true,
+        "seconds": 35.4,
+        "predicted": {
+          "primary": "#002533",
+          "font": "Inter"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "supabase.com",
+        "ok": true,
+        "seconds": 24,
+        "predicted": {
+          "primary": "#3fcf8e",
+          "font": "Inter"
+        },
+        "score": {
+          "color": true,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "resend.com",
+      "primary": [],
+      "font": [
+        "Inter"
+      ],
+      "sources": [
+        "https://resend.com/design.md"
+      ],
+      "evidence": "monochrome brand (black/white); Inter for body per resend.com/design.md",
+      "designlang": {
+        "site": "resend.com",
+        "ok": true,
+        "seconds": 24.1,
+        "predicted": {
+          "primary": "#d6ebfd",
+          "font": "inter"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "resend.com",
+        "ok": true,
+        "seconds": 70.2,
+        "predicted": {
+          "primary": "#70b8ff",
+          "font": "inter"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "framer.com",
+      "primary": [
+        "#0099ff"
+      ],
+      "font": [
+        "Inter Variable",
+        "Inter"
+      ],
+      "sources": [
+        "https://www.framer.com/brand"
+      ],
+      "evidence": "Framer Blue #0099ff painted (dE 0); #0055ff is not",
+      "designlang": {
+        "site": "framer.com",
+        "ok": true,
+        "seconds": 12.6,
+        "predicted": {
+          "primary": "#0066ff",
+          "font": "Inter"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "framer.com",
+        "ok": true,
+        "seconds": 28.6,
+        "predicted": {
+          "primary": "#0066ff",
+          "font": "Inter Variable"
+        },
+        "score": {
+          "color": false,
+          "font": true
+        }
+      }
+    },
+    {
+      "site": "figma.com",
+      "primary": [],
+      "font": [
+        "figmaSans",
+        "Figma Sans"
+      ],
+      "sources": [
+        "https://www.figma.com/blog/the-story-of-creating-figma-sans/"
+      ],
+      "evidence": "no single brand colour since the 2024 refresh",
+      "designlang": {
+        "site": "figma.com",
+        "ok": true,
+        "seconds": 33.2,
+        "predicted": {
+          "primary": "#24cb71",
+          "font": "figmaSans"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      },
+      "dembrandt": {
+        "site": "figma.com",
+        "ok": true,
+        "seconds": 27.4,
+        "predicted": {
+          "primary": null,
+          "font": "figmaSans"
+        },
+        "score": {
+          "color": null,
+          "font": true
+        }
+      }
+    }
+  ]
+}

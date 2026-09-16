@@ -1,0 +1,64 @@
+name: bench
+
+# Head-to-head extraction benchmark against a pinned dembrandt, on a clean
+# runner so the published numbers are reproducible. Results are uploaded as an
+# artifact; nothing is committed automatically.
+#
+# bench/sites.json is the training set the extraction fixes were tuned on.
+# bench/holdout.json was never used to tune anything: quote it for claims.
+
+on:
+  workflow_dispatch:
+    inputs:
+      set:
+        description: Which site set to run
+        type: choice
+        default: both
+        options: [both, sites, holdout]
+  schedule:
+    # Weekly, so drift in either tool shows up without anyone remembering to look.
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install browser
+        run: node bin/design-extract.js install-browser --with-deps
+
+      - name: Run held-out set
+        if: ${{ github.event.inputs.set != 'sites' }}
+        run: node bench/run.mjs --sites bench/holdout.json
+
+      - name: Run training set
+        if: ${{ github.event.inputs.set != 'holdout' }}
+        run: node bench/run.mjs
+
+      - name: Summary
+        if: always()
+        run: |
+          for f in bench/results/*.md; do
+            [ -e "$f" ] || continue
+            cat "$f" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench-results
+          path: bench/results/

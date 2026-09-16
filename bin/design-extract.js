@@ -274,8 +274,8 @@ program
       if (merged.full || merged.screenshots) {
         spinner.text = 'Extracting logo...';
         try {
-          const { chromium } = await import('playwright');
-          const browser = await chromium.launch({ headless: true, ...(merged.systemChrome && { channel: 'chrome' }) });
+          const { launchChromium } = await import('../src/browser.js');
+          const browser = await launchChromium({ headless: true, ...(merged.systemChrome && { channel: 'chrome' }) });
           const ctx = await browser.newContext({ viewport: { width: merged.width, height: parseInt(merged.height) || 800 } });
           const lp = await ctx.newPage();
           await lp.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
@@ -362,8 +362,9 @@ program
       // JSON mode: output and exit
       if (jsonMode) {
         const output = opts.jsonPretty ? JSON.stringify(design, null, 2) : JSON.stringify(design);
-        process.stdout.write(output + '\n');
-        process.exit(0);
+        const { EXIT, writeThenExit } = await import('../src/exit-codes.js');
+        writeThenExit(process.stdout, output + '\n', EXIT.OK);
+        return;
       }
 
       spinner.text = 'Generating outputs...';
@@ -719,19 +720,20 @@ program
       }
 
     } catch (err) {
+      const { exitCodeForError } = await import('../src/exit-codes.js');
       if (jsonMode) {
         process.stderr.write(JSON.stringify({ error: err.message }) + '\n');
-        process.exit(1);
+        process.exit(exitCodeForError(err));
       }
       spinner.fail('Extraction failed');
-      if (err.message.includes('playwright')) {
-        console.error(chalk.red('\n  Playwright is not installed.'));
-        console.error(chalk.gray('  Run: npx playwright install chromium\n'));
+      if (err.code === 'BROWSER_UNAVAILABLE' || err.message.includes('playwright')) {
+        console.error(chalk.red('\n  No browser available.'));
+        console.error(chalk.gray('  Run: npx designlang install-browser (or install Google Chrome)\n'));
       } else {
         console.error(chalk.red(`\n  ${err.message}\n`));
         if (opts.verbose) console.error(err.stack);
       }
-      process.exit(1);
+      process.exit(exitCodeForError(err));
     }
   });
 
@@ -2002,8 +2004,9 @@ program
         process.stdout.write(output + '\n');
       }
     } catch (err) {
+      const { exitCodeForError } = await import('../src/exit-codes.js');
       process.stderr.write(`Error: ${err.message}\n`);
-      process.exit(1);
+      process.exit(exitCodeForError(err));
     }
   });
 
@@ -2032,10 +2035,12 @@ program
       }
       if (!r.findings.length) console.log(chalk.green('  ✓ no issues found'));
       console.log('');
-      process.exit(r.findings.some(f => f.severity === 'error') ? 1 : 0);
+      const { EXIT } = await import('../src/exit-codes.js');
+      process.exit(r.findings.some(f => f.severity === 'error') ? EXIT.DRIFT : EXIT.OK);
     } catch (err) {
+      const { exitCodeForError } = await import('../src/exit-codes.js');
       process.stderr.write(chalk.red(`\n  Error: ${err.message}\n\n`));
-      process.exit(1);
+      process.exit(exitCodeForError(err));
     }
   });
 
@@ -2053,13 +2058,16 @@ program
     try {
       const { checkDrift, formatDriftMarkdown } = await import('../src/drift.js');
       const r = await checkDrift(url, { tokens: resolve(opts.tokens), tolerance: opts.tolerance });
-      if (opts.json) { process.stdout.write(JSON.stringify(r, null, 2) + '\n'); }
-      else { console.log('\n' + formatDriftMarkdown(r) + '\n'); }
       const order = ['in-sync', 'minor-drift', 'notable-drift', 'major-drift'];
-      if (order.indexOf(r.verdict) >= order.indexOf(opts.failOn)) process.exit(1);
+      const { EXIT, writeThenExit } = await import('../src/exit-codes.js');
+      const code = order.indexOf(r.verdict) >= order.indexOf(opts.failOn) ? EXIT.DRIFT : EXIT.OK;
+      if (opts.json) return writeThenExit(process.stdout, JSON.stringify(r, null, 2) + '\n', code);
+      console.log('\n' + formatDriftMarkdown(r) + '\n');
+      if (code !== EXIT.OK) process.exit(code);
     } catch (err) {
+      const { exitCodeForError } = await import('../src/exit-codes.js');
       process.stderr.write(chalk.red(`\n  Error: ${err.message}\n\n`));
-      process.exit(1);
+      process.exit(exitCodeForError(err));
     }
   });
 
@@ -2304,10 +2312,12 @@ program
         console.log('');
         console.log(r.md);
       }
-      if (r.shouldFail) process.exit(1);
+      const { EXIT } = await import('../src/exit-codes.js');
+      if (r.shouldFail) process.exit(EXIT.DRIFT);
     } catch (err) {
+      const { exitCodeForError } = await import('../src/exit-codes.js');
       spinner.fail(err.message);
-      process.exit(1);
+      process.exit(exitCodeForError(err));
     }
   });
 
@@ -2371,9 +2381,9 @@ program
       const { chromium } = await import('playwright');
       const bin = chromium.executablePath();
       if (existsSync(bin)) add('Chromium binary', bin, 'OK');
-      else add('Chromium binary', 'not installed', 'FAIL', 'npx playwright install chromium');
+      else add('Chromium binary', 'not installed', 'FAIL', 'npx designlang install-browser');
     } catch {
-      add('Chromium binary', 'not resolvable', 'FAIL', 'npx playwright install chromium');
+      add('Chromium binary', 'not resolvable', 'FAIL', 'npx designlang install-browser');
     }
 
     const outDir = resolve('./design-extract-output');
@@ -2514,6 +2524,21 @@ program
   .action(async (opts) => {
     const { run } = await import('../src/mcp/server.js');
     await run(opts);
+  });
+
+// ── Browser install ────────────────────────────────────────
+program
+  .command('install-browser')
+  .description('Download the Chromium build designlang drives (no longer done at npm install)')
+  .option('--with-deps', 'also install the system libraries Chromium needs (Linux CI)')
+  .action(async (opts) => {
+    const { createRequire } = await import('module');
+    const { spawnSync } = await import('child_process');
+    // playwright's exports map hides cli.js, so locate it from package.json.
+    const pwDir = dirname(createRequire(import.meta.url).resolve('playwright/package.json'));
+    const args = [join(pwDir, 'cli.js'), 'install', ...(opts.withDeps ? ['--with-deps'] : []), 'chromium'];
+    const r = spawnSync(process.execPath, args, { stdio: 'inherit' });
+    process.exit(r.status ?? 1);
   });
 
 program.parse();

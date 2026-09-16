@@ -1,7 +1,46 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { buildResources } from '../src/mcp/resources.js';
 import { buildTools } from '../src/mcp/tools.js';
+
+describe('MCP package entry', () => {
+  it('designlang/mcp resolves and exports run, buildTools, buildResources', async () => {
+    const mod = await import('designlang/mcp');
+    assert.equal(typeof mod.run, 'function');
+    assert.equal(typeof mod.buildTools, 'function');
+    assert.equal(typeof mod.buildResources, 'function');
+  });
+});
+
+describe('MCP server over stdio', () => {
+  it('a stock SDK client completes the handshake and sees the package version', async () => {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'));
+    const transport = new StdioClientTransport({
+      command: process.execPath,
+      args: [
+        fileURLToPath(new URL('../bin/design-extract.js', import.meta.url)),
+        'mcp',
+        '--output-dir',
+        mkdtempSync(join(tmpdir(), 'designlang-mcp-')),
+      ],
+    });
+    const client = new Client({ name: 'designlang-test', version: '0.0.0' });
+    await client.connect(transport);
+    try {
+      assert.equal(client.getServerVersion().version, pkg.version);
+      const { tools } = await client.listTools();
+      assert.ok(tools.length >= 5);
+    } finally {
+      await client.close();
+    }
+  });
+});
 
 const tokens = {
   $metadata: { source: 'https://x.com' },

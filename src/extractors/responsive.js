@@ -1,6 +1,6 @@
 // Responsive multi-breakpoint capture — extract at multiple viewports and diff
 
-import { chromium } from 'playwright';
+import { launchChromium } from '../browser.js';
 
 const VIEWPORTS = [
   { name: 'mobile', width: 375, height: 812 },
@@ -11,7 +11,7 @@ const VIEWPORTS = [
 
 export async function captureResponsive(url, options = {}) {
   const { wait = 0 } = options;
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchChromium({ headless: true });
 
   const snapshots = [];
 

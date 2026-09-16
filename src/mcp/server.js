@@ -10,9 +10,11 @@ import {
   ReadResourceRequestSchema,
   ListToolsRequestSchema,
   CallToolRequestSchema,
+  DEFAULT_NEGOTIATED_PROTOCOL_VERSION,
 } from '@modelcontextprotocol/sdk/types.js';
 import { buildResources } from './resources.js';
 import { buildTools } from './tools.js';
+import { buildExtractTools } from './extract-tools.js';
 
 // Best-effort reconstruction of a design object from the files on disk.
 // We only need what the tools/resources consume: tokens + regions +
@@ -67,9 +69,12 @@ export async function run({ outputDir }) {
 
   const resources = buildResources({ design, tokens });
   const tools = buildTools({ design, tokens });
+  // Live tools need no extraction on disk: they extract URLs as jobs.
+  const liveTools = buildExtractTools();
 
+  const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf-8'));
   const server = new Server(
-    { name: 'designlang', version: '7.0.0' },
+    { name: 'designlang', version },
     { capabilities: { resources: {}, tools: {} } },
   );
 
@@ -84,18 +89,19 @@ export async function run({ outputDir }) {
     return { contents: [r] };
   });
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: tools.list() }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: [...liveTools.list(), ...tools.list()] }));
 
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
-    if (!tokens) {
+    const { name, arguments: args } = req.params;
+    const live = liveTools.has(name);
+    if (!live && !tokens) {
       return {
         isError: true,
         content: [{ type: 'text', text: 'no extraction loaded' }],
       };
     }
-    const { name, arguments: args } = req.params;
     try {
-      const result = await tools.call(name, args);
+      const result = await (live ? liveTools : tools).call(name, args);
       return { content: [{ type: 'text', text: JSON.stringify(result) }] };
     } catch (err) {
       return {
@@ -107,4 +113,19 @@ export async function run({ outputDir }) {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
+
+  // The SDK rejects an initialize without protocolVersion outright. Serve it on
+  // the default revision instead, as the spec asks (#182, #183).
+  const deliver = transport.onmessage;
+  transport.onmessage = (message, extra) => {
+    if (message?.method === 'initialize' && !message.params?.protocolVersion) {
+      message.params = {
+        capabilities: {},
+        clientInfo: { name: 'unknown', version: '0' },
+        ...message.params,
+        protocolVersion: DEFAULT_NEGOTIATED_PROTOCOL_VERSION,
+      };
+    }
+    return deliver(message, extra);
+  };
 }

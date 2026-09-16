@@ -12,6 +12,20 @@ const GENERIC_FAMILIES = new Set([
 ]);
 const ICON_FAMILY_RE = /^(material[-\s]?icons|font\s?awesome|fa-?solid|fa-?regular|fa-?brands|ionicons|glyphicons|bootstrap-icons|remixicon|feather|tabler-icons|lucide)/i;
 
+// A family is typography only where it renders text. Head and metadata
+// elements carry the browser default (Times) without drawing anything: on
+// gov.uk they were 35 of Times's 36 "uses", enough to make it a body font.
+// Records without hasText (older snapshots) still count.
+const NON_RENDERING_TAGS = new Set(['html', 'head', 'meta', 'link', 'script', 'style', 'title', 'noscript', 'template', 'base']);
+function rendersText(el) {
+  return el.hasText !== false && !NON_RENDERING_TAGS.has(el.tag);
+}
+
+// Code faces. Syntax highlighting draws every token as its own text element, so
+// on tailwindcss.com plexMono out-counted Inter 450 to 131. A code face is never
+// the body font and sorts after the text faces.
+const MONO_FAMILY_RE = /mono|code|consol|courier|menlo|monaco/i;
+
 function normaliseFamily(raw) {
   if (!raw) return null;
   // Strip quotes + take the first stack member (sites declare e.g.
@@ -317,7 +331,7 @@ export function extractTypography(computedStyles, options = {}) {
   for (const el of computedStyles) {
     // Font families — normalised first-of-stack, with noise filtered out.
     const family = normaliseFamily(el.fontFamily);
-    if (family && isMeaningfulFamily(family)) {
+    if (family && isMeaningfulFamily(family) && rendersText(el)) {
       familyCount.set(family, (familyCount.get(family) || 0) + 1);
     }
 
@@ -340,14 +354,16 @@ export function extractTypography(computedStyles, options = {}) {
 
   // Unique font families sorted by usage
   const families = [...familyCount.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => MONO_FAMILY_RE.test(a[0]) - MONO_FAMILY_RE.test(b[0]) || b[1] - a[1])
     .map(([name, count]) => {
+      if (MONO_FAMILY_RE.test(name)) return { name, count, usage: 'mono' };
       const usedOn = computedStyles
-        .filter(el => el.fontFamily?.includes(name))
+        .filter(el => el.fontFamily?.includes(name) && rendersText(el))
         .map(el => el.tag);
       const headingUse = usedOn.some(t => /^h[1-6]$/.test(t));
       const bodyUse = usedOn.some(t => ['p', 'span', 'li', 'div'].includes(t));
-      return { name, count, usage: headingUse && bodyUse ? 'all' : headingUse ? 'headings' : 'body' };
+      // A family on neither (buttons, inputs) is not a body font.
+      return { name, count, usage: headingUse && bodyUse ? 'all' : headingUse ? 'headings' : bodyUse ? 'body' : 'other' };
     });
 
   // Build type scale from unique sizes

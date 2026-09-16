@@ -5,7 +5,7 @@
 // The two fold into one combined report + a loss heatmap. Live browser + URLs,
 // so this is the integration layer; the scoring it calls is unit-tested.
 
-import { chromium } from 'playwright';
+import { launchChromium } from '../browser.js';
 import { extractDesignLanguage } from '../index.js';
 import { diffPngBuffers, ratioToFidelity } from '../verify/diff.js';
 import { scoreMotionFidelity } from './motion-fidelity.js';
@@ -55,7 +55,7 @@ export async function measureCloneFidelity({ originalUrl, cloneUrl, opts = {} } 
   // Visual: pixel-diff full-page screenshots.
   let visualFidelity = null;
   let heatmap = null;
-  const browser = await chromium.launch({ headless: true, ...browserOpts });
+  const browser = await launchChromium({ headless: true, ...browserOpts });
   try {
     const [origShot, cloneShot] = await Promise.all([
       fullPageShot(browser, originalUrl, opts),

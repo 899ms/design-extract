@@ -20,7 +20,9 @@ export function formatReactTheme(design) {
   theme.fonts = {};
   for (const f of typography.families) {
     const key = f.name.toLowerCase().includes('mono') ? 'mono' : f.usage === 'headings' ? 'heading' : 'body';
-    theme.fonts[key] = `'${f.name}', ${f.name.toLowerCase().includes('mono') ? 'monospace' : 'sans-serif'}`;
+    // Families are sorted by use, so the most used keeps each slot.
+    if (theme.fonts[key]) continue;
+    theme.fonts[key] =`'${f.name}', ${f.name.toLowerCase().includes('mono') ? 'monospace' : 'sans-serif'}`;
   }
 
   theme.fontSizes = {};
@@ -144,7 +146,7 @@ function buildMuiTheme(design) {
   if (colors.text.length > 1) mui.palette.text.secondary = colors.text[1];
 
   // Typography
-  const bodyFont = typography.families.find(f => f.usage === 'body');
+  const bodyFont = typography.families.find(f => f.usage === 'body' || f.usage === 'all');
   const headingFont = typography.families.find(f => f.usage === 'headings');
   mui.typography.fontFamily = bodyFont ? `'${bodyFont.name}', sans-serif` : undefined;
   for (const s of typography.scale.slice(0, 6)) {

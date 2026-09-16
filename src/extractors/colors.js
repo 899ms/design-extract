@@ -91,14 +91,32 @@ export function extractColors(computedStyles) {
     }
   }
 
-  // Rank chromatic clusters by brand-likelihood:
-  //   interactiveBg carries the most signal (it's a CTA color)
-  //   saturation comes next (brand colors are usually punchy)
-  //   raw usage count is a weak tiebreaker (avoids neutral-heavy sites dominating)
+  // Rank chromatic clusters by brand-likelihood. Measured on real sites
+  // (bench/), linear weights let one button decide: 100 points per interactive
+  // background against at most ~3 for usage and area, so gov.uk's CTA green
+  // (4 buttons) beat the GOV.UK blue and a one-off #0066ff beat Framer Blue
+  // used 44 times.
+  //   interactive backgrounds: a strong signal, with diminishing returns
+  //   chroma, not HSL saturation: near-black #002533 has s=100 but reads dark
+  //   usage and painted area: a brand colour is repeated across the page
+  // Evidence of use counts only in proportion to how colourful the cluster is:
+  // near-black #101214 on atlassian.com (chroma 1.5) got in through two dark
+  // buttons and then won on 702 uses. Area has diminishing returns, since one
+  // full-page background (84% of discord.com) is a surface, not repetition.
   function brandScore(c) {
-    return c.interactiveBg * 100 + c.saturation * 2 + Math.log10(Math.max(1, c.count)) + (c.areaShare || 0) * 10;
+    const chroma = ((100 - Math.abs(2 * c.lightness - 100)) * c.saturation) / 100;
+    const colourful = Math.min(1, chroma / 30);
+    return chroma + colourful * (
+      40 * Math.log2(1 + c.interactiveBg)
+      + 25 * Math.log10(Math.max(1, c.count))
+      + 60 * Math.sqrt(c.areaShare || 0)
+    );
   }
-  const ranked = [...chromatic].sort((a, b) => brandScore(b) - brandScore(a));
+  // The browser's default link colours say nothing about the brand.
+  const UA_LINK_COLORS = new Set(['#0000ee', '#551a8b']);
+  const ranked = [...chromatic]
+    .filter((c) => !UA_LINK_COLORS.has(c.hex))
+    .sort((a, b) => brandScore(b) - brandScore(a));
 
   const primary = ranked[0] || null;
   // secondary: distinct hue from primary

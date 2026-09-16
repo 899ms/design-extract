@@ -1,6 +1,6 @@
 name: "designlang — Design Regression Guard"
-description: "Diff a site's design tokens against a baseline and comment the delta on the pull request."
-author: "masyv"
+description: "Extract a live URL, diff its design tokens against a committed baseline, annotate the pull request and fail on drift."
+author: "Manavarya09"
 branding:
   icon: "layers"
   color: "orange"
@@ -16,8 +16,8 @@ inputs:
     description: "Whether to post a PR comment with the diff (true/false)."
     default: "true"
   fail-on-change:
-    description: "Fail the job if any token changed."
-    default: "false"
+    description: "Fail the job if any token changed. Set to false to report without gating."
+    default: "true"
   full:
     description: "Pass --full to designlang (screenshots, responsive, interactions)."
     default: "false"
@@ -31,17 +31,38 @@ inputs:
 outputs:
   changed:
     description: "true/false — whether any tokens changed since the baseline."
+    value: ${{ steps.diff.outputs.changed }}
   changed-count:
     description: "Number of changed tokens."
+    value: ${{ steps.diff.outputs.changed-count }}
   diff-path:
     description: "Path to the generated diff markdown."
+    value: ${{ steps.diff.outputs.diff-path }}
+  version:
+    description: "The designlang version that ran."
+    value: ${{ steps.install.outputs.version }}
 
 runs:
   using: "composite"
   steps:
+    # Pinned to the designlang release this action was tagged with, so a gate on
+    # @vX.Y.Z never changes behaviour under you.
     - name: Install designlang
+      id: install
       shell: bash
-      run: npm install -g designlang
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        VERSION="$(node -p "require(process.env.ACTION_PATH + '/../package.json').version")"
+        if npm view "designlang@$VERSION" version >/dev/null 2>&1; then
+          npm install -g "designlang@$VERSION"
+        else
+          echo "::warning::designlang@$VERSION is not on npm (untagged ref?); using the latest release"
+          npm install -g designlang
+          VERSION="$(designlang --version)"
+        fi
+        designlang install-browser --with-deps
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Extract tokens
       shell: bash
@@ -54,20 +75,38 @@ runs:
         ARGS="--out .designlang-run"
         if [ "$FULL" = "true" ]; then ARGS="$ARGS --full"; fi
         if [ -n "$EXTRA" ]; then ARGS="$ARGS $EXTRA"; fi
+        set +e
         designlang "$URL" $ARGS
+        CODE=$?
+        set -e
+        if [ "$CODE" -eq 3 ]; then
+          echo "::error::designlang timed out loading the page (exit 3). This is retryable; the design was not checked."
+        elif [ "$CODE" -ne 0 ]; then
+          echo "::error::designlang could not extract the page (exit $CODE). The design was not checked."
+        fi
+        exit "$CODE"
 
     - name: Diff tokens against baseline
       id: diff
       shell: bash
       env:
         BASELINE: ${{ inputs.baseline }}
+        ACTION_PATH: ${{ github.action_path }}
       run: |
         NEW=$(ls .designlang-run/*-design-tokens.json | head -n 1)
-        node "${{ github.action_path }}/diff-tokens.cjs" "$BASELINE" "$NEW" > .designlang-run/diff.md || true
-        CHANGED=$(grep -c '^- ' .designlang-run/diff.md || echo 0)
+        node "$ACTION_PATH/diff-tokens.cjs" "$BASELINE" "$NEW" > .designlang-run/diff.md || true
+        CHANGED=$(grep -c '^- ' .designlang-run/diff.md || true)
         echo "changed=$([ "$CHANGED" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "changed-count=$CHANGED" >> "$GITHUB_OUTPUT"
         echo "diff-path=.designlang-run/diff.md" >> "$GITHUB_OUTPUT"
+        # One annotation per token. Values come from the audited site, so escape
+        # them the way the Actions toolkit does before emitting a command.
+        grep '^- ' .designlang-run/diff.md | head -n 50 | while IFS= read -r line; do
+          msg="${line#- }"
+          msg="${msg//'%'/%25}"
+          msg="${msg//$'\r'/%0D}"
+          echo "::warning title=designlang drift::$msg"
+        done
 
     - name: Comment on PR
       if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}
@@ -87,6 +126,8 @@ runs:
     - name: Fail on change
       if: ${{ inputs.fail-on-change == 'true' && steps.diff.outputs.changed == 'true' }}
       shell: bash
+      env:
+        COUNT: ${{ steps.diff.outputs.changed-count }}
       run: |
-        echo "::error::Design tokens changed vs baseline."
+        echo "::error::$COUNT design token(s) changed vs baseline. Update the baseline if the change is intended."
         exit 1

@@ -7,7 +7,7 @@
 // No Lighthouse dependency — everything is pure `playwright` + the page's own
 // `PerformanceObserver` API, which keeps the package size flat.
 
-import { chromium } from 'playwright';
+import { launchChromium } from '../browser.js';
 
 const THIRD_PARTY_HOSTS = [
   'google-analytics', 'googletagmanager', 'analytics.google', 'segment.', 'mixpanel',
@@ -44,7 +44,7 @@ function fontLoadingStrategy(stack) {
 }
 
 export async function captureCoreWebVitals(url, { width = 1280, height = 800, channel, timeout = 30000 } = {}) {
-  const browser = await chromium.launch({ headless: true, ...(channel && { channel }) });
+  const browser = await launchChromium({ headless: true, ...(channel && { channel }) });
   try {
     const ctx = await browser.newContext({ viewport: { width, height }, colorScheme: 'light' });
     const page = await ctx.newPage();

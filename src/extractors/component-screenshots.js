@@ -7,7 +7,7 @@
 // subdirectory under the output root and returns an index the bin emits as
 // `*-screenshots.json`.
 
-import { chromium } from 'playwright';
+import { launchChromium } from '../browser.js';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 
@@ -121,7 +121,7 @@ export async function captureComponentScreenshotsV10(url, outDir, { width = 1280
   const screenshotDir = join(outDir, 'screenshots');
   mkdirSync(screenshotDir, { recursive: true });
 
-  const browser = await chromium.launch({ headless: true, ...(channel && { channel }) });
+  const browser = await launchChromium({ headless: true, ...(channel && { channel }) });
   try {
     const context = await browser.newContext({
       viewport: { width, height },

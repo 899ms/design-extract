@@ -1,0 +1,131 @@
+// Pure scoring for the extraction benchmark. Kept apart from the runner so the
+// numbers we publish are unit-tested, not just printed.
+
+export function toHex(value) {
+  if (value == null) return null;
+  if (typeof value === 'object') return toHex(value.hex ?? value.value ?? null);
+  const s = String(value).trim().toLowerCase();
+  let m = s.match(/^#([0-9a-f]{3})$/);
+  if (m) return '#' + m[1].split('').map((c) => c + c).join('');
+  m = s.match(/^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/);
+  if (m) return '#' + m[1];
+  m = s.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/);
+  if (m) return '#' + m.slice(1, 4).map((n) => Number(n).toString(16).padStart(2, '0')).join('');
+  return null;
+}
+
+function hexToLab(hex) {
+  const [r, g, b] = [1, 3, 5]
+    .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  const x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
+  const y = r * 0.2126 + g * 0.7152 + b * 0.0722;
+  const z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  const [fx, fy, fz] = [f(x), f(y), f(z)];
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+
+// CIE76 distance in Lab.
+export function deltaE(a, b) {
+  const [l1, a1, b1] = hexToLab(a);
+  const [l2, a2, b2] = hexToLab(b);
+  return Math.hypot(l1 - l2, a1 - a2, b1 - b2);
+}
+
+// ΔE ≤ 10 is "the same brand colour" (#0070f3 vs #0072f5 is under 1), while
+// neighbouring hues on a brand's palette sit well above it.
+export const COLOR_TOLERANCE = 10;
+
+export function colorHit(predicted, truths, tolerance = COLOR_TOLERANCE) {
+  const hex = toHex(predicted);
+  if (!hex) return false;
+  return truths.some((t) => {
+    const truth = toHex(t);
+    return truth != null && deltaE(hex, truth) <= tolerance;
+  });
+}
+
+// "sohne-var" and "Söhne", "Inter Variable" and "Inter", "Mona Sans VF" and
+// "Mona Sans" name the same family.
+export function normalizeFont(name) {
+  return String(name || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/["']/g, '')
+    .replace(/\b(variable|var|vf)\b/g, '')
+    .replace(/[\s_-]+/g, '');
+}
+
+export function fontHit(predicted, truths) {
+  const p = normalizeFont(predicted);
+  if (!p) return false;
+  return truths.some((t) => {
+    const n = normalizeFont(t);
+    return n.length > 0 && (p.includes(n) || n.includes(p));
+  });
+}
+
+function mostUsed(entries, nameKey) {
+  const counts = new Map();
+  for (const e of entries) {
+    const name = e?.[nameKey];
+    if (name) counts.set(name, (counts.get(name) || 0) + (e.count || 1));
+  }
+  let best = null;
+  for (const [name, count] of counts) if (!best || count > best[1]) best = [name, count];
+  return best?.[0] ?? null;
+}
+
+// Both readers apply the same rule: the most used of the families each tool
+// says sets body text, else its most used family overall. Neither tool is
+// judged on its heading face.
+export function readDesignlang(design) {
+  const families = design?.typography?.families || [];
+  // designlang marks a family used for both headings and body as "all".
+  const body = families.filter((f) => f.usage === 'body' || f.usage === 'all');
+  return {
+    primary: toHex(design?.colors?.primary),
+    font: mostUsed(body, 'name') ?? mostUsed(families, 'name'),
+  };
+}
+
+export function readDembrandt(output) {
+  const styles = output?.typography?.styles || [];
+  const body = styles.filter((s) => s.context === 'body');
+  return {
+    primary: toHex(output?.colors?.semantic?.primary),
+    font: mostUsed(body, 'family') ?? mostUsed(styles, 'family'),
+  };
+}
+
+// A dimension with no ground truth (a monochrome brand, a system body font)
+// scores null: not counted, rather than counted against either tool.
+export function scoreSite(truth, predicted) {
+  return {
+    color: truth.primary?.length ? colorHit(predicted?.primary, truth.primary) : null,
+    font: truth.font?.length ? fontHit(predicted?.font, truth.font) : null,
+  };
+}
+
+function median(nums) {
+  if (!nums.length) return null;
+  const s = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
+// rows: [{ site, ok, seconds, score: { color, font } }] for one tool. A failed
+// run keeps its false scores, so it counts as a miss wherever truth exists.
+export function summarize(rows) {
+  const ran = rows.filter((r) => r.ok);
+  return {
+    sites: rows.length,
+    failures: rows.length - ran.length,
+    colorSites: rows.filter((r) => r.score.color !== null).length,
+    colorHits: rows.filter((r) => r.score.color === true).length,
+    fontSites: rows.filter((r) => r.score.font !== null).length,
+    fontHits: rows.filter((r) => r.score.font === true).length,
+    medianSeconds: median(ran.map((r) => r.seconds)),
+  };
+}

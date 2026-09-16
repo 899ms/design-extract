@@ -62,8 +62,10 @@ export function formatCssVars(design) {
     for (let i = 0; i < design.typography.families.length; i++) {
       const f = design.typography.families[i];
       let key;
+      // Only the most used body-capable family gets --font-body.
+      const bodyTaken = design.typography.families.slice(0, i).some((p) => p.usage === 'body' || p.usage === 'all');
       if (f.usage === 'headings') key = 'heading';
-      else if (f.usage === 'body') key = 'body';
+      else if (f.usage === 'body') key = bodyTaken ? `font-${i}` : 'body';
       else if (i === 0) key = 'sans';
       else if (f.name.toLowerCase().includes('mono')) key = 'mono';
       else key = i === 1 ? 'heading' : `font-${i}`;

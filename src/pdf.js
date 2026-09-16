@@ -1,4 +1,4 @@
-import { chromium } from 'playwright';
+import { launchChromium } from './browser.js';
 import { writeFileSync } from 'fs';
 
 export async function htmlToPdf(html, opts = {}) {
@@ -12,7 +12,7 @@ export async function htmlToPdf(html, opts = {}) {
   } = opts;
 
   const format = String(paper).toLowerCase();
-  const browser = await chromium.launch();
+  const browser = await launchChromium();
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle' });

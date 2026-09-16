@@ -5,7 +5,7 @@
 // diff against the real crop → fidelity %. Aggregate to a site score, with
 // per-token-family attribution so the number is explained, not asserted.
 
-import { chromium } from 'playwright';
+import { launchChromium } from '../browser.js';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { extractDesignLanguage } from '../index.js';
@@ -68,7 +68,7 @@ export async function verifyDesign(url, opts = {}) {
   const design = opts.design || await extractDesignLanguage(url, opts.browserOpts || {});
   const tokens = tokensFromDesign(design);
 
-  const browser = await chromium.launch({ headless: true, ...(opts.channel && { channel: opts.channel }) });
+  const browser = await launchChromium({ headless: true, ...(opts.channel && { channel: opts.channel }) });
   const results = [];
   try {
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2, colorScheme: 'light' });
