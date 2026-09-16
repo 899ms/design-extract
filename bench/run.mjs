@@ -94,6 +94,7 @@ const TOOLS = {
 };
 
 const sitesFile = resolve(arg('sites', join(root, 'bench/sites.json')));
+const set = basename(sitesFile, '.json');
 const only = arg('only')?.split(',');
 const truths = JSON.parse(readFileSync(sitesFile, 'utf-8')).sites.filter((s) => !only || only.includes(s.site));
 
@@ -158,19 +159,18 @@ const md = [
   `| Primary colour correct | ${ratio(summary.designlang.colorHits, summary.designlang.colorSites)} | ${ratio(summary.dembrandt.colorHits, summary.dembrandt.colorSites)} |`,
   `| Body font correct | ${ratio(summary.designlang.fontHits, summary.designlang.fontSites)} | ${ratio(summary.dembrandt.fontHits, summary.dembrandt.fontSites)} |`,
   `| Failed runs | ${summary.designlang.failures} | ${summary.dembrandt.failures} |`,
-  `| Median time | ${summary.designlang.medianSeconds ?? '—'}s | ${summary.dembrandt.medianSeconds ?? '—'}s |`,
+  `| Median time | ${summary.designlang.medianSeconds?.toFixed(1) ?? '—'}s | ${summary.dembrandt.medianSeconds?.toFixed(1) ?? '—'}s |`,
   '',
   '| Site | Truth | designlang colour | dembrandt colour | designlang font | dembrandt font |',
   '|---|---|---|---|---|---|',
   ...report.sites.map((s) => `| ${s.site} | ${truthText(s)} |${cell(s.designlang, 'color')} | ${cell(s.dembrandt, 'color')} | ${cell(s.designlang, 'font')} | ${cell(s.dembrandt, 'font')} |`),
   '',
-  'Reproduce: `node bench/run.mjs`. Ground truth and sources: `bench/sites.json`.',
+  `Reproduce: \`node bench/run.mjs${set === 'sites' ? '' : ` --sites bench/${set}.json`}\`. Ground truth and sources: \`bench/${set}.json\`${set === 'holdout' ? ' (held out: no extraction change was tuned on these sites)' : ''}.`,
   '',
 ].join('\n');
 
 // bench/sites.json writes <date>.*; any other set (e.g. holdout.json) writes
 // <date>-<set>.* so one run never overwrites another.
-const set = basename(sitesFile, '.json');
 const name = set === 'sites' ? date : `${date}-${set}`;
 const outDir = join(root, 'bench/results');
 mkdirSync(outDir, { recursive: true });
